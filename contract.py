@@ -8,7 +8,7 @@ from reportlab.lib import styles
 from reportlab.pdfgen.canvas import Canvas
 
 import json
-import os
+import subprocess
 
             
 
@@ -197,6 +197,8 @@ def pdfer(contractfile=''):
 
     matList = pdf(grid, 'TST.pdf')
     matList.exportPDF()
+    subprocess.Popen('"C:/Program Files/Tracker Software/PDF Editor/PDFXEdit.exe" "C:/Users/lwooten/Desktop/Relaying Material Python/materialList/TST.pdf"', shell=True) 
 
 if __name__ == '__pdfer__':
     pdfer()
+    
