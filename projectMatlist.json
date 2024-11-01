@@ -1,1 +1,48 @@
-{"Panel B1": {"description": "", "44": {"count": "1", "names": [""]}}, "Panel B2": {"description": "", "44": {"count": "2", "names": ["", ""]}}, "Panel B3": {"description": "", "44": {"count": "3", "names": ["", "", ""]}}}
+{
+    "Panel B1": {
+        "description": "",
+        "44": {
+            "count": "1",
+            "names": [
+                ""
+            ]
+        },
+        "3J": {
+            "count": "a",
+            "names": [
+                ""
+            ]
+        }
+    },
+    "Panel B2": {
+        "description": "",
+        "44": {
+            "count": "2",
+            "names": [
+                "",
+                ""
+            ]
+        },
+        "3J": {
+            "count": "",
+            "names": [
+                ""
+            ]
+        }
+    },
+    "Panel B3": {
+        "description": "",
+        "44": {
+            "count": "3",
+            "names": [
+                "",
+                "",
+                "ts"
+            ]
+        },
+        "3J": {
+            "count": "",
+            "names": []
+        }
+    }
+}
