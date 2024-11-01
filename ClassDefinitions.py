@@ -173,10 +173,21 @@ class mainProgram(QMainWindow):
         print('----------------------------------------------------------------')
         for row in range(len(self.data)):
             for col in range(1,len(self.data[row])):
+                pass
+                #print(f'Row {row} x Column {col}:')
                 #print(self.tableWidget.item(row,col).text())
-                print(f'Row {row} x Column {col}:')
-                print(self.tableWidget.item(row,col).text())
-                print(self.tableWidget.item(row,col).hiddenText)
+                #print(self.tableWidget.item(row,col).hiddenText)
+        self.outputDict = {}
+        colCounter = 0
+        for col in self.tableHeaders[1:]:                            #Iterate over each panel
+            self.outputDict[col] = {}
+            rowCounter = 0
+            for row in self.data:
+                self.outputDict[col][row[0]] = {'count':self.data[rowCounter][colCounter+1],'names':self.tableWidget.item(rowCounter,colCounter+1).hiddenText}
+                rowCounter += 1 
+            colCounter += 1
+            
+        print(self.outputDict)
                 
 
     def refreshTable(self):
