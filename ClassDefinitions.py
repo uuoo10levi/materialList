@@ -58,6 +58,7 @@ class mainProgram(QMainWindow):
         self.data = [["" for i in self.tableHeaders]]
         '''Defines the data that fills the table \n
         Should be altered to reflect changes to the table or additional rows made by the user'''
+        self.allDeviceNames = [[[] for column in range(len(self.data[row]))] for row in range(len(self.data))]
         self.availableItemNumbers = list(masterMaterialList.keys())
         '''Defines item numbers that the user can select from when adding a row\n
         Should be read in from the master database json file'''
@@ -93,7 +94,6 @@ class mainProgram(QMainWindow):
         self.tableWidget.itemChanged.connect(self.recordTableChange)        #Defines function to run when a table item is changed (save all table changes to self.data)
         self.tableWidget.itemSelectionChanged.connect(self.refreshRightDock)         #Defines function to run when a table item is clicked (update right-side dock to show deviceNames input boxes)
         
-        self.allDeviceNames = [[[] for column in range(len(self.data[row]))] for row in range(len(self.data))]
         print(self.allDeviceNames)
 
         #buildTable-B (combo boxes)
@@ -212,6 +212,7 @@ class mainProgram(QMainWindow):
         self.panels = list(self.tableHeaders[1:])
         presentItems = []
         panelIndex = 1
+        
         for panel in self.panels:
             for item in data[panel]:
                 presentItems = [i[0] for i in self.data]
@@ -224,6 +225,15 @@ class mainProgram(QMainWindow):
                     else:
                         self.data[presentItems.index(item)][panelIndex] = data[panel][item]['count']
             panelIndex+=1
+
+        self.allDeviceNames = [[[] for column in range(len(self.data[row]))] for row in range(len(self.data))]
+        panelIndex = 1
+        for panel in self.panels:
+            for item in data[panel]:
+                if item != 'description':
+                    self.allDeviceNames[presentItems.index(item)][panelIndex] = data[panel][item]['names']
+            panelIndex+=1
+        print(self.allDeviceNames)
         
         '''^^^Above fills in item counts, but Item No.'s are filled in in the build table function'''
 
@@ -271,13 +281,7 @@ class mainProgram(QMainWindow):
         self.refreshTable()
 
     def updateDeviceNames(self):
-        #self.tableWidget.item(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).hiddenText = [i.text() for i in self.deviceNames]
         self.allDeviceNames[self.currentlySelectedCell[0]][self.currentlySelectedCell[1]] = [i.text() for i in self.deviceNames]
-
-# class customTableWidgetItem(QTableWidgetItem):
-#     def __init__(self,text):
-#         super(customTableWidgetItem,self).__init__(text)
-#         self.hiddenText = ['0'] #For device names
         
 
 
