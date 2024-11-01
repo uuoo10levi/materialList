@@ -8,20 +8,8 @@ from reportlab.lib import styles
 from reportlab.pdfgen.canvas import Canvas
 
 import json
+import os
 
-# def comparelist (lst1, lst2):
-#     counter = 0
-#     for i in [0, 1, 2]:
-#         if lst1[i] == lst2[i]:
-#             counter += 1
-            
-#     if counter == 3:
-#         return True
-#     else:
-#         return False
-    
-def itemnumberfromlist (lst):
-    return str(lst[0]) + lst[1] + lst[2]
             
 
 class PanelObjects:
@@ -146,8 +134,8 @@ class pdf:
         self.doc.build(self.elements, canvasmaker=NumberedPageCanvas)
         
 
-def Main(contract=''):
-    with open('contract.json', 'r') as file:
+def pdfer(contractfile=''):
+    with open(contractfile, 'r') as file:
         contract = json.load(file)
 
     panelList = [PanelObjects(i,name=name) for i, name in enumerate(contract)]
@@ -204,11 +192,11 @@ def Main(contract=''):
     for row in range(len(allheaders),len(grid)):
         count = 0
         for column in range(2,len(grid[row])):        
-            count += int(str(grid[row][column]).split('<br/')[0])
+            count += int(str(grid[row][column]).split('<br/>')[0])
             grid[row][2] = count
 
     matList = pdf(grid, 'TST.pdf')
     matList.exportPDF()
 
-if __name__ == '__main__':
-    Main()
+if __name__ == '__pdfer__':
+    pdfer()

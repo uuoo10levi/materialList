@@ -4,6 +4,8 @@ from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QComboBox, QFrame, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QPlainTextEdit, QSpacerItem
 import json
 
+import contract
+
 class mainProgram(QMainWindow):
     def __init__(self, tableHeaders = [''], masterMaterialList = {'':''}):
         super(mainProgram, self).__init__()
@@ -147,6 +149,7 @@ class mainProgram(QMainWindow):
         self.addButton = QPushButton('Add Entry', clicked=self.addEntry)                #Defines button that adds a new row based on dock information
         self.spacer = QSpacerItem(50,200)                                               #Defines arbitrary space between buttons
         self.printButton = QPushButton('Print Data', clicked=self.printData)            #Defines button that prints self.data to console
+        self.pdferButton = QPushButton('PDF this MO FO!', clicked=self.pdfer)
 
         self.deviceNameSlots = 0
                                                                                         #Determine appropriate number of device name entry text boxes (default to zero)
@@ -178,6 +181,7 @@ class mainProgram(QMainWindow):
         self.dockLayout.addRow(self.updateDeviceNamesButton)
         self.dockLayout.addItem(self.spacer)                                            #...
         self.dockLayout.addRow(self.printButton)                                        #...
+        self.dockLayout.addRow(self.pdferButton)
 
 
         self.dockMenu.setLayout(self.dockLayout)                                        #Apply layout to dockMenu widget
@@ -206,7 +210,7 @@ class mainProgram(QMainWindow):
             self.outputDict[col] = {'description':''}
             rowCounter = 0
             for row in self.data:
-                self.outputDict[col][row[0]] = {'count':self.data[rowCounter][colCounter+1],'names':self.allDeviceNames[rowCounter][colCounter+1]}
+                self.outputDict[col][row[0]] = {'description': '','count':self.data[rowCounter][colCounter+1],'names':self.allDeviceNames[rowCounter][colCounter+1]}
                 rowCounter += 1 
             colCounter += 1
             
@@ -260,6 +264,10 @@ class mainProgram(QMainWindow):
         #Update self.data from table (first column)
         for i in range(len(self.itemSelectComboBoxes)):                                         #Iterate over each first-column drop-down-select box
             self.data[i][0] = self.itemSelectComboBoxes[i].currentText()                        #Apply currently selected value to associated self.data value
+            
+    def pdfer(self):
+        contract.pdfer('projectMatlist.json')
+        
 
     def addEntry(self):
         '''Should not be used if item number is already present in table\n
