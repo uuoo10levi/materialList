@@ -2,7 +2,7 @@ import sys
 from screeninfo import get_monitors
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QComboBox, QFrame, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QPlainTextEdit, QSpacerItem
-
+import json
 
 class mainProgram(QMainWindow):
     def __init__(self, tableHeaders = [''], masterMaterialList = {'':''}):
@@ -62,6 +62,9 @@ class mainProgram(QMainWindow):
         self.panels = list(self.tableHeaders[1:])
         '''Defines a clone of self.tableHeaders, but without the first 'Item Number' value'''
 
+        self.importData()
+
+
         self.buildMainWindow()
         self.buildTable()
 
@@ -95,6 +98,8 @@ class mainProgram(QMainWindow):
             self.itemSelectComboBoxes.append(QComboBox())                   #Add drop-down-select object to list
             for j in self.availableItemNumbers:                             #Iterate over all available item numbers
                 self.itemSelectComboBoxes[i].addItem(j)                     #Add all available item numbers to drop-down-select object's options
+            comboBoxOptions = [self.itemSelectComboBoxes[i].itemText(j) for j in range(self.itemSelectComboBoxes[i].count())]
+            self.itemSelectComboBoxes[i].setCurrentIndex(comboBoxOptions.index(self.data[i][0]))
             self.tableWidget.setCellWidget(i,0,self.itemSelectComboBoxes[i])#Slot each drop-down-select object into table (each drop-down-select object is now a member of self.itemSelectComboBoxes and self.tableWidget)
         self.setCentralWidget(self.tableWidget)                             #Attach table widget to main window
         self.refreshTable()                                                 #Ensure live self.data values are displaying on the table
@@ -177,10 +182,14 @@ class mainProgram(QMainWindow):
                 #print(f'Row {row} x Column {col}:')
                 #print(self.tableWidget.item(row,col).text())
                 #print(self.tableWidget.item(row,col).hiddenText)
+        self.exportData()
+
+    def exportData(self):
+        print(self.data)
         self.outputDict = {}
         colCounter = 0
         for col in self.tableHeaders[1:]:                            #Iterate over each panel
-            self.outputDict[col] = {}
+            self.outputDict[col] = {'description':''}
             rowCounter = 0
             for row in self.data:
                 self.outputDict[col][row[0]] = {'count':self.data[rowCounter][colCounter+1],'names':self.tableWidget.item(rowCounter,colCounter+1).hiddenText}
@@ -188,7 +197,34 @@ class mainProgram(QMainWindow):
             colCounter += 1
             
         print(self.outputDict)
+        with open('test.json','w') as outfile:
+            json.dump(self.outputDict,outfile)
                 
+    def importData(self):
+        with open('test.json') as jsonFile:
+            data = json.load(jsonFile)
+        self.tableHeaders = list(data.keys())
+        self.tableHeaders.insert(0,'Item No.')
+        self.data = []
+        self.panels = list(self.tableHeaders[1:])
+        presentItems = []
+        panelIndex = 1
+        for panel in self.panels:
+            for item in data[panel]:
+                presentItems = [i[0] for i in self.data]
+                if item != 'description':
+                    if item not in presentItems:
+                        newRow = ['' for i in self.tableHeaders]
+                        newRow[0] = item
+                        newRow[panelIndex] = data[panel][item]['count']
+                        self.data.append(newRow)
+                    else:
+                        self.data[presentItems.index(item)][panelIndex] = data[panel][item]['count']
+            panelIndex+=1
+        '''^^^Above fills in item counts, but Item No.'s are filled in in the build table function'''
+
+              
+        print(self.data)
 
     def refreshTable(self):
         #Update table from self.data (all but first column)
@@ -243,6 +279,6 @@ class customTableWidgetItem(QTableWidgetItem):
 
 if  __name__ == "__main__":
     app = QApplication([])
-    application = mainProgram(tableHeaders=['Item No.','Panel B1','Panel B2', 'Panel B3'],masterMaterialList={'3J':'','44':'Test'})
+    application = mainProgram(tableHeaders=['Item No.','Panel B1','Panel B2', 'Panel B3'],masterMaterialList={'3J':'','44':'Test','55':'Pierce'})
     application.show()
     sys.exit(app.exec())
