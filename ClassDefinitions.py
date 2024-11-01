@@ -7,6 +7,8 @@ import json
 class mainProgram(QMainWindow):
     def __init__(self, tableHeaders = [''], masterMaterialList = {'':''}):
         super(mainProgram, self).__init__()
+
+        self.matListFileName = 'projectMatlist.json'
         
         self.monitor = get_monitors()
         '''Defines monitor object that allows automatic screen window sizing per screen size'''
@@ -58,14 +60,21 @@ class mainProgram(QMainWindow):
         self.data = [["" for i in self.tableHeaders]]
         '''Defines the data that fills the table \n
         Should be altered to reflect changes to the table or additional rows made by the user'''
-        self.allDeviceNames = [[[] for column in range(len(self.data[row]))] for row in range(len(self.data))]
+        self.allDeviceNames = [[[''] for column in range(len(self.data[row]))] for row in range(len(self.data))]
+        print('line 64')
+        print(self.allDeviceNames)
+
         self.availableItemNumbers = list(masterMaterialList.keys())
         '''Defines item numbers that the user can select from when adding a row\n
         Should be read in from the master database json file'''
         self.panels = list(self.tableHeaders[1:])
         '''Defines a clone of self.tableHeaders, but without the first 'Item Number' value'''
 
-        self.importData()
+        try:
+            with open(self.matListFileName) as file:
+                self.importData()
+        except:
+            pass
 
 
         self.buildMainWindow()
@@ -94,7 +103,7 @@ class mainProgram(QMainWindow):
         self.tableWidget.itemChanged.connect(self.recordTableChange)        #Defines function to run when a table item is changed (save all table changes to self.data)
         self.tableWidget.itemSelectionChanged.connect(self.refreshRightDock)         #Defines function to run when a table item is clicked (update right-side dock to show deviceNames input boxes)
         
-        print(self.allDeviceNames)
+        #print(self.allDeviceNames)
 
         #buildTable-B (combo boxes)
         self.itemSelectComboBoxes = []                                      #Defines list to store first column (device number) drop-down-select object
@@ -102,8 +111,11 @@ class mainProgram(QMainWindow):
             self.itemSelectComboBoxes.append(QComboBox())                   #Add drop-down-select object to list
             for j in self.availableItemNumbers:                             #Iterate over all available item numbers
                 self.itemSelectComboBoxes[i].addItem(j)                     #Add all available item numbers to drop-down-select object's options
-            comboBoxOptions = [self.itemSelectComboBoxes[i].itemText(j) for j in range(self.itemSelectComboBoxes[i].count())]
-            self.itemSelectComboBoxes[i].setCurrentIndex(comboBoxOptions.index(self.data[i][0]))
+            try:
+                comboBoxOptions = [self.itemSelectComboBoxes[i].itemText(j) for j in range(self.itemSelectComboBoxes[i].count())]
+                self.itemSelectComboBoxes[i].setCurrentIndex(comboBoxOptions.index(self.data[i][0]))
+            except:
+                comboBoxOptions = ''
             self.tableWidget.setCellWidget(i,0,self.itemSelectComboBoxes[i])#Slot each drop-down-select object into table (each drop-down-select object is now a member of self.itemSelectComboBoxes and self.tableWidget)
         self.setCentralWidget(self.tableWidget)                             #Attach table widget to main window
         self.refreshTable()                                                 #Ensure live self.data values are displaying on the table
@@ -149,6 +161,7 @@ class mainProgram(QMainWindow):
 
         #I don't even know how this paragraph works, but it does. It ensures the hidden device name data on each cell matches the visible device name text boxes on the right-side dock at all times
         self.deviceNames = ['' for i in range(self.deviceNameSlots)]                         #Defines appropriately sized list for device name text boxes
+        #print(self.allDeviceNames)
         if self.currentlySelectedCell[1] >= 1 and len(self.allDeviceNames[self.currentlySelectedCell[0]][self.currentlySelectedCell[1]]) != len(self.deviceNames):
             self.allDeviceNames[self.currentlySelectedCell[0]][self.currentlySelectedCell[1]] = ['' for i in range(self.deviceNameSlots)]
         for i in range(len(self.deviceNames)):                                          #Iterate over above list    
@@ -179,7 +192,7 @@ class mainProgram(QMainWindow):
 
     def printData(self):
         self.refreshTable()
-        print('----------------------------------------------------------------')
+        #print('----------------------------------------------------------------')
         for row in range(len(self.data)):
             for col in range(1,len(self.data[row])):
                 pass
@@ -188,7 +201,7 @@ class mainProgram(QMainWindow):
         self.exportData()
 
     def exportData(self):
-        print(self.data)
+        #print(self.data)
         self.outputDict = {}
         colCounter = 0
         for col in self.tableHeaders[1:]:                            #Iterate over each panel
@@ -199,12 +212,12 @@ class mainProgram(QMainWindow):
                 rowCounter += 1 
             colCounter += 1
             
-        print(self.outputDict)
-        with open('test.json','w') as outfile:
+        #print(self.outputDict)
+        with open(self.matListFileName,'w') as outfile:
             json.dump(self.outputDict,outfile)
                 
     def importData(self):
-        with open('test.json') as jsonFile:
+        with open(self.matListFileName) as jsonFile:
             data = json.load(jsonFile)
         self.tableHeaders = list(data.keys())
         self.tableHeaders.insert(0,'Item No.')
@@ -233,12 +246,12 @@ class mainProgram(QMainWindow):
                 if item != 'description':
                     self.allDeviceNames[presentItems.index(item)][panelIndex] = data[panel][item]['names']
             panelIndex+=1
-        print(self.allDeviceNames)
+        #print(self.allDeviceNames)
         
         '''^^^Above fills in item counts, but Item No.'s are filled in in the build table function'''
 
               
-        print(self.data)
+        #print(self.data)
 
     def refreshTable(self):
         #Update table from self.data (all but first column)
@@ -260,11 +273,13 @@ class mainProgram(QMainWindow):
             if i.text() != '':                                                                      #If any panel text box has data
                 addData = True                                                                      #Don't end function early
             data.append(i.text())                                                                   #Add each panel text box text to list of new data
+            
 
         if addData == False:                                                                        #If no devices were added, but addEntry button was pushed
             return                                                                                  #End function early
         
         self.data.append(data)                                                                      #Add list of new data to self.data
+        self.allDeviceNames.append([[''] for i in self.data[-1]])
         self.tableWidget.insertRow(self.tableWidget.rowCount())                                     #Add row to the end of table to hold new entry
 
         for i in self.dockItemPanels:                                                               #Reset panel text box
