@@ -61,8 +61,6 @@ class mainProgram(QMainWindow):
         '''Defines the data that fills the table \n
         Should be altered to reflect changes to the table or additional rows made by the user'''
         self.allDeviceNames = [[[''] for column in range(len(self.data[row]))] for row in range(len(self.data))]
-        print('line 64')
-        print(self.allDeviceNames)
 
         self.availableItemNumbers = list(masterMaterialList.keys())
         '''Defines item numbers that the user can select from when adding a row\n
@@ -258,8 +256,7 @@ class mainProgram(QMainWindow):
         for row in range(len(self.data)):                                                       #Iterate over each row in self.data
             for col in range(1,len(self.data[row])):                                            #Iterate over each cell (except for the item number (first) cell)
                 if type(self.tableWidget.item(row, col)) != QTableWidgetItem:
-                    self.tableWidget.setItem(row, col, QTableWidgetItem(str(self.data[row][col])))  #Slot a tableWidgetItem object into each cell of the table (excluding first column) to display data in table ---> Change to customTableWidgetItem and test
-        '''^^^This line is breaking the hidden text feature^^^'''
+                    self.tableWidget.setItem(row, col, QTableWidgetItem(str(self.data[row][col])))  #Slot a tableWidgetItem object into each cell of the table (excluding first column) to display data in table
         #Update self.data from table (first column)
         for i in range(len(self.itemSelectComboBoxes)):                                         #Iterate over each first-column drop-down-select box
             self.data[i][0] = self.itemSelectComboBoxes[i].currentText()                        #Apply currently selected value to associated self.data value
