@@ -20,17 +20,26 @@ with open('D:\Documents\Material.csv', newline='') as csvfile:
         masterList.append(row)
         # for column in row.keys():
 keylist = list(keylist)        
-print(keylist)
+
 
 output = []
-for i in range(len(masterList)):
-    print(type(masterList[i]))
-    # output.append({masterList[i]['ItemNo'], masterList[i]})
+# for i in range(len(masterList)):
+#     print(type(masterList[i]))
+#     output.append({masterList[i]['ItemNo'], masterList[i]})
 
+output = []
+itemlist = masterList[0]
+itemnumber = itemlist['ItemNo']
+
+output.append(itemnumber)
+output.append(itemlist)
+
+print(output)
 
 out_file = open("masterlist.json", "w")
 json.dump(output, out_file, indent=6)
 
 # print(material)
 def descriptions (item):
+    '''item as dictionary list'''
     masterList[item]['description']

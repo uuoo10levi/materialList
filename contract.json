@@ -1,154 +1,59 @@
 {
-    "panels": {
-        "0": "Panel A1\n161kV West Bus",
-        "1": "Panel A2\n161kV Missouri City Line",
-        "2": "Panel A3\n161kV Rockies Ex. South Line",
-        "3": "Loose & Not Mounted"
-    },
-    "material": {
-        "0": {
-            "3-J-": {
-                "count": 2,
-                "names": [
-                    "87-B2P",
-                    "87-B2B"
-                ]
-            },
-            "77--": {
-                "count": 4,
-                "names": [
-                    "",
-                    "",
-                    "",
-                    ""
-                ]
-            },
-            "32-K-": {
-                "count": 1,
-                "names": ["87L P/B-M"]
-            },
-            "35-R-": {
-            "count": 2,
+    "Panel B1": {
+        "description": "161kV West Bus",
+        "3J": {
+            "description": "item 3J description",
+            "count": "1",
             "names": [
-                "86-B2P",
-                "86-B1B"
+                "B1 - 3J - 1"
             ]
         },
-            "44--": {
-                "count": 1,
-                "names": [
-                "TS-86-B2P,B2B"
+        "44": {
+            "description": "item 44 description",
+            "count": "3",
+            "names": [
+                "B1 - 44 - 1",
+                "B1 - 44 - 2",
+                "B1 - 44 - 3"
             ]
-        },
-            "46--": {
-                "count": 2,
-                "names": [
-                "TS1-87-B2P",
-                "TS1-87-B2B"
-            ]
-        },
-            "47--": {
-                "count": 2,
-                "names": [
-                "TS2-87-B2P",
-                "TS2-87-B2B"
-            ]
-        },
-            "150--": {
-                "count": 1,
-                "names": [""]
         }
     },
-        "1": {
-            "77--": {
-                "count": 5,
-                "names": ["","","","",""]
-            },
-            "1-W-": {
-                "count": 1,
-                "names": ["21P-M"]
-            },
-            "2-E-": {
-                "count": 1,
-                "names": ["21B-M"]
-            },
-            "35-E-": {
-                "count": 2,
-                "names": ["86BF-1044", "86BF-1070"]
-            },
-            "44--": {
-                "count": 7,
-                "names": [
-                "TS3-21B-M",
-                "TS2-21B-M",
-                "TS-86BF-1044,1070",
-                "TS2-21P-M",
-                "TS3-21P-M",
-                "TS4-21P-M",
-                "TS5-21P-M"
+    "Panel B2": {
+        "description": "161kV Missouri City Line",
+        "3J": {
+            "description": "item 3J description",
+            "count": "2",
+            "names": [
+                "B2 - 3J - 1",
+                "B2 - 3J - 2"
             ]
         },
-            "41--": {
-                "count": 2,
-                "names": [
-                "TS1-21B-M",
-                "TS1-21P-M"
+        "44": {
+            "description": "item 44 description",
+            "count": "2",
+            "names": [
+                "B2 - 44 - 1",
+                "B2 - 44 - 2"
+            ]
+        }
+    },
+    "Panel B3": {
+        "description": "161kV Rockies Ex. South Line",
+        "3J": {
+            "description": "item 3J description",
+            "count": "3",
+            "names": [
+                "B3 - 3J - 1",
+                "B3 - 3J - 2",
+                "B3 - 3J - 3"
             ]
         },
-            "32-C-": {
-                "count": 2,
-                "names": ["01-1044", "01-1070"]
-            }
-        },
-        "2": {
-            "77--": {
-                "count": 4,
-                "names": ["","","",""]
-            },
-            "1-W-": {
-                "count": 1,
-                "names": ["21P-RS"]
-            },
-            "2-E-": {
-                "count": 1,
-                "names": ["21B-RS"]
-            },
-            "35-E-": {
-                "count": 1,
-                "names": ["86BF-1115"]
-            },
-            "44--": {
-                "count": 7,
-                "names": [
-                "TS3-21B-RS",
-                "TS2-21B-SRS",
-                "TS-86BF-1115",
-                "TS2-21P-RS",
-                "TS3-21P-RS",
-                "TS4-21P-RS",
-                "TS5-21P-RS"
+        "44": {
+            "description": "item 44 description",
+            "count": "1",
+            "names": [
+                "B3 - 44 - 1"
             ]
-        },
-            "41--": {
-                "count": 2,
-                "names": [
-                "TS1-21B-RS",
-                "TS1-21P-RS"
-            ]
-        },
-            "32-C-": {
-                "count": 2,
-                "names": ["01-1115"]
-            }
-        },
-        "3": {
-            "3-J-": {
-                "count": 2,
-                "names": [
-                    "87-B2P",
-                    "87-B2B"
-                ]
-            }
         }
     }
 }
