@@ -43,6 +43,8 @@ class mainProgram(QMainWindow):
         '''Defines button on right-side dock that makes new entry from right-side dock data'''
         self.deviceNames = [QLineEdit()]
         '''Defines text boxes on right-side dock used to enter individual device names'''
+        self.allDeviceNames = [[['']]]
+        '''Defines a running list of all devices names per cell: [row][column][list of names]'''
         self.spacer = QSpacerItem(0,0)
         '''Defines space between the add section of the right-side dock and the rest of the right-side dock'''
         self.printButton = QPushButton()
@@ -91,6 +93,8 @@ class mainProgram(QMainWindow):
         self.tableWidget.itemChanged.connect(self.recordTableChange)        #Defines function to run when a table item is changed (save all table changes to self.data)
         self.tableWidget.itemSelectionChanged.connect(self.refreshRightDock)         #Defines function to run when a table item is clicked (update right-side dock to show deviceNames input boxes)
         
+        self.allDeviceNames = [[[] for column in range(len(self.data[row]))] for row in range(len(self.data))]
+        print(self.allDeviceNames)
 
         #buildTable-B (combo boxes)
         self.itemSelectComboBoxes = []                                      #Defines list to store first column (device number) drop-down-select object
@@ -145,12 +149,12 @@ class mainProgram(QMainWindow):
 
         #I don't even know how this paragraph works, but it does. It ensures the hidden device name data on each cell matches the visible device name text boxes on the right-side dock at all times
         self.deviceNames = ['' for i in range(self.deviceNameSlots)]                         #Defines appropriately sized list for device name text boxes
-        if self.currentlySelectedCell[1] >= 1 and len(self.tableWidget.item(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).hiddenText) != len(self.deviceNames):
-            self.tableWidget.item(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).hiddenText = ['' for i in range(self.deviceNameSlots)]
+        if self.currentlySelectedCell[1] >= 1 and len(self.allDeviceNames[self.currentlySelectedCell[0]][self.currentlySelectedCell[1]]) != len(self.deviceNames):
+            self.allDeviceNames[self.currentlySelectedCell[0]][self.currentlySelectedCell[1]] = ['' for i in range(self.deviceNameSlots)]
         for i in range(len(self.deviceNames)):                                          #Iterate over above list    
             self.deviceNames[i] = QLineEdit()                                           #Change each list value to a text box object
             self.deviceNames[i].setPlaceholderText(f'Device {i+1} Name:')               #Set text box prompt
-            self.deviceNames[i].setText(self.tableWidget.item(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).hiddenText[i])
+            self.deviceNames[i].setText(self.allDeviceNames[self.currentlySelectedCell[0]][self.currentlySelectedCell[1]][i])
          
         self.updateDeviceNamesButton = QPushButton('Update Device Names',clicked=self.updateDeviceNames)#Add button to update device names according to above text boxes
 
@@ -181,7 +185,6 @@ class mainProgram(QMainWindow):
                 pass
                 #print(f'Row {row} x Column {col}:')
                 #print(self.tableWidget.item(row,col).text())
-                #print(self.tableWidget.item(row,col).hiddenText)
         self.exportData()
 
     def exportData(self):
@@ -192,7 +195,7 @@ class mainProgram(QMainWindow):
             self.outputDict[col] = {'description':''}
             rowCounter = 0
             for row in self.data:
-                self.outputDict[col][row[0]] = {'count':self.data[rowCounter][colCounter+1],'names':self.tableWidget.item(rowCounter,colCounter+1).hiddenText}
+                self.outputDict[col][row[0]] = {'count':self.data[rowCounter][colCounter+1],'names':self.allDeviceNames[rowCounter][colCounter+1]}
                 rowCounter += 1 
             colCounter += 1
             
@@ -221,6 +224,7 @@ class mainProgram(QMainWindow):
                     else:
                         self.data[presentItems.index(item)][panelIndex] = data[panel][item]['count']
             panelIndex+=1
+        
         '''^^^Above fills in item counts, but Item No.'s are filled in in the build table function'''
 
               
@@ -230,8 +234,8 @@ class mainProgram(QMainWindow):
         #Update table from self.data (all but first column)
         for row in range(len(self.data)):                                                       #Iterate over each row in self.data
             for col in range(1,len(self.data[row])):                                            #Iterate over each cell (except for the item number (first) cell)
-                if type(self.tableWidget.item(row, col)) != customTableWidgetItem:
-                    self.tableWidget.setItem(row, col, customTableWidgetItem(str(self.data[row][col])))  #Slot a tableWidgetItem object into each cell of the table (excluding first column) to display data in table ---> Change to customTableWidgetItem and test
+                if type(self.tableWidget.item(row, col)) != QTableWidgetItem:
+                    self.tableWidget.setItem(row, col, QTableWidgetItem(str(self.data[row][col])))  #Slot a tableWidgetItem object into each cell of the table (excluding first column) to display data in table ---> Change to customTableWidgetItem and test
         '''^^^This line is breaking the hidden text feature^^^'''
         #Update self.data from table (first column)
         for i in range(len(self.itemSelectComboBoxes)):                                         #Iterate over each first-column drop-down-select box
@@ -267,13 +271,13 @@ class mainProgram(QMainWindow):
         self.refreshTable()
 
     def updateDeviceNames(self):
-        self.tableWidget.item(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).hiddenText = [i.text() for i in self.deviceNames]
-        
+        #self.tableWidget.item(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).hiddenText = [i.text() for i in self.deviceNames]
+        self.allDeviceNames[self.currentlySelectedCell[0]][self.currentlySelectedCell[1]] = [i.text() for i in self.deviceNames]
 
-class customTableWidgetItem(QTableWidgetItem):
-    def __init__(self,text):
-        super(customTableWidgetItem,self).__init__(text)
-        self.hiddenText = ['0'] #For device names
+# class customTableWidgetItem(QTableWidgetItem):
+#     def __init__(self,text):
+#         super(customTableWidgetItem,self).__init__(text)
+#         self.hiddenText = ['0'] #For device names
         
 
 
