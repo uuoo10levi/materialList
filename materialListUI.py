@@ -132,7 +132,7 @@ class mainProgram(QMainWindow):
     def buildRightDock(self):
         self.removeDockWidget(self.dock)
         self.dockItemSelect = QComboBox()
-        for item in self.uniqueItemNumbers:
+        for item in self.masterMatList.keys():
             self.dockItemSelect.addItem(item)
 
         self.dockItemPanels = []
@@ -187,16 +187,21 @@ class mainProgram(QMainWindow):
         pass
 
     def addItem(self):
-        self.tableWidget.insertRow(self.tableWidget.rowCount())
+        # print(type(self.tableWidget.item(0,0)))
+        # print(type(self.tableWidget.item(0,0)))
+        # print(type(self.tableWidget.item(0,0)))
+        if self.dockItemSelect.currentText() not in [self.tableWidget.item(i,0).text() for i in range(self.tableWidget.rowCount())]:
 
-        itemNumberCell = QTableWidgetItem(self.dockItemSelect.currentText())
-        itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
-        self.tableWidget.setItem(self.tableWidget.rowCount()-1,0,itemNumberCell)
+            self.tableWidget.insertRow(self.tableWidget.rowCount())
 
-        for panelIndex, perPanelCount in enumerate(self.dockItemPanels):
-            cell = customTableWidgetItem(perPanelCount.text())
-            cell.currentTextChanged.connect(self.buildRightDock)
-            self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1,panelIndex+1,cell)
+            itemNumberCell = QTableWidgetItem(self.dockItemSelect.currentText())
+            itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
+            self.tableWidget.setItem(self.tableWidget.rowCount()-1,0,itemNumberCell)
+
+            for panelIndex, perPanelCount in enumerate(self.dockItemPanels):
+                cell = customTableWidgetItem(perPanelCount.text())
+                cell.currentTextChanged.connect(self.buildRightDock)
+                self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1,panelIndex+1,cell)
 
 
     def printDataToConsole(self):
@@ -231,6 +236,6 @@ class customTableWidgetItem(QComboBox):
 
 if  __name__ == "__main__":
     app = QApplication([])
-    application = mainProgram(tableHeaders=['Item No.','Panel B1','Panel B2', 'Panel B3'],masterMaterialList={'3J':'','44':'Test','55':'Pierce'})
+    application = mainProgram(tableHeaders=['Item No.','Panel B1','Panel B2', 'Panel B3'],masterMaterialList={'3J':'','44':'Test','55':'Pierce','Test':'Test2'})
     application.show()
     sys.exit(app.exec())
