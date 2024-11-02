@@ -187,7 +187,17 @@ class mainProgram(QMainWindow):
         pass
 
     def addItem(self):
-        pass
+        self.tableWidget.insertRow(self.tableWidget.rowCount())
+
+        itemNumberCell = QTableWidgetItem(self.dockItemSelect.currentText())
+        itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
+        self.tableWidget.setItem(self.tableWidget.rowCount()-1,0,itemNumberCell)
+
+        for panelIndex, perPanelCount in enumerate(self.dockItemPanels):
+            cell = customTableWidgetItem(perPanelCount.text())
+            cell.currentTextChanged.connect(self.buildRightDock)
+            self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1,panelIndex+1,cell)
+
 
     def printDataToConsole(self):
         pass
