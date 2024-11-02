@@ -146,15 +146,20 @@ class mainProgram(QMainWindow):
 
         self.deviceNameSlots = 0
         if self.currentlySelectedCell[1] >= 1:
-            #self.deviceNameSlots = int(self.tableWidget.item(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).text())
             self.deviceNameSlots = int(self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText())
             
         
         self.deviceNames = [QLineEdit() for i in range(self.deviceNameSlots)]
         for i in range(len(self.deviceNames)):
+            self.deviceNames[i].editingFinished.connect(self.updateDeviceNames)
+
+
+        for i in range(len(self.deviceNames)):
             self.deviceNames[i].setPlaceholderText(f'Device {i+1} Name:')
-        self.updateDeviceNamesButton = QPushButton('Update Device Names',clicked=self.updateDeviceNames)
-        
+            try:
+                self.deviceNames[i].setText(self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).cellDeviceNames[i])
+            except:
+                pass
 
         self.dockLayout = QFormLayout()
         self.dockLayout.addRow(self.dockItemSelect)
@@ -163,7 +168,6 @@ class mainProgram(QMainWindow):
         self.dockLayout.addRow(self.addItemButton)
         for i in self.deviceNames:
             self.dockLayout.addRow(i)
-        self.dockLayout.addRow(self.updateDeviceNamesButton)
         self.dockLayout.addRow(self.printButton)
 
 
@@ -172,14 +176,13 @@ class mainProgram(QMainWindow):
 
 
         self.dock = QDockWidget('Menu')
-        #self.dock.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)   
         self.dock.setWidget(self.dockMenu)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dock) 
 
     def tableItemSelectionChanged(self):
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
         self.buildRightDock()
-
+        
     def tableItemChanged(self):
         pass
 
@@ -190,7 +193,7 @@ class mainProgram(QMainWindow):
         pass
 
     def updateDeviceNames(self):
-        pass
+        self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).cellDeviceNames = [i.text() for i in self.deviceNames]
 
     def mainProgramLoop(self):
         #Functions attached to events or buttons:
@@ -210,9 +213,9 @@ class mainProgram(QMainWindow):
 class customTableWidgetItem(QComboBox):
     def __init__(self,text,deviceNames=[]):
         super(customTableWidgetItem,self).__init__()
-        self.addItems([str(i) for i in range(0,99)])
+        self.addItems([str(i) for i in range(0,16)])
         self.setCurrentText(text)
-        self.deviceNames = deviceNames
+        self.cellDeviceNames = deviceNames
 
 
 
