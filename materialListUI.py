@@ -60,11 +60,16 @@ class mainProgram(QMainWindow):
         self.masterMatList = masterMaterialList
         '''Defines a dictionary of form {"|Item No.|":"|Description|"}'''
         
+
+        #Initial Setup
         self.buildMainWindow()
         data = self.importData(self.matListFileName)
         self.getUniqueItemNumbers(data)
         self.buildInitialTable(data)
         self.buildRightDock()
+
+        #Main Loop
+        self.mainProgramLoop()
 
     def buildMainWindow(self):
         self.monitorXSize = int(self.monitor[0].width)
@@ -109,9 +114,13 @@ class mainProgram(QMainWindow):
         for panelIndex, panel in enumerate(self.tableHeaders):
             for itemIndex, item in enumerate(self.uniqueItemNumbers):
                 if panel != 'Item No.':
-                    self.tableWidget.setItem(itemIndex,panelIndex,customTableWidgetItem(data[panel][item]['count']))
+                    #self.tableWidget.setItem(itemIndex,panelIndex,customTableWidgetItem(data[panel][item]['count']))
+                    cell = customTableWidgetItem(data[panel][item]['count'])
+                    cell.currentTextChanged.connect(self.buildRightDock)
+                    self.tableWidget.setCellWidget(itemIndex,panelIndex,cell)
                 if panel == 'Item No.':
-                    itemNumberCell = customTableWidgetItem(item)
+                    #itemNumberCell = customTableWidgetItem(item)
+                    itemNumberCell = QTableWidgetItem(item)
                     itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
                     self.tableWidget.setItem(itemIndex,panelIndex,itemNumberCell)
 
@@ -137,7 +146,9 @@ class mainProgram(QMainWindow):
 
         self.deviceNameSlots = 0
         if self.currentlySelectedCell[1] >= 1:
-            self.deviceNameSlots = int(self.tableWidget.item(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).text())
+            #self.deviceNameSlots = int(self.tableWidget.item(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).text())
+            self.deviceNameSlots = int(self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText())
+            
         
         self.deviceNames = [QLineEdit() for i in range(self.deviceNameSlots)]
         for i in range(len(self.deviceNames)):
@@ -181,9 +192,26 @@ class mainProgram(QMainWindow):
     def updateDeviceNames(self):
         pass
 
-class customTableWidgetItem(QTableWidgetItem):
+    def mainProgramLoop(self):
+        #Functions attached to events or buttons:
+        #tableItemSelectionChanged()
+        #tableItemChanged()
+        #addItem()
+        #printDataToConsole()
+        
+        
+        pass
+
+# class customTableWidgetItem(QTableWidgetItem):
+#     def __init__(self,text,deviceNames=[]):
+#         super(customTableWidgetItem,self).__init__(text)
+#         self.deviceNames = deviceNames
+
+class customTableWidgetItem(QComboBox):
     def __init__(self,text,deviceNames=[]):
-        super(customTableWidgetItem,self).__init__(text)
+        super(customTableWidgetItem,self).__init__()
+        self.addItems([str(i) for i in range(0,99)])
+        self.setCurrentText(text)
         self.deviceNames = deviceNames
 
 
