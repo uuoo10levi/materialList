@@ -5,13 +5,23 @@ from PyQt5.QtWidgets import QGridLayout, QComboBox, QFrame, QApplication, QMainW
 import json
 
 
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, landscape, inch
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Table
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import styles
+from reportlab.pdfgen.canvas import Canvas
+
+
 
 class mainProgram(QMainWindow):
     def __init__(self, tableHeaders = ['Item No.'], masterMaterialList = {'':''}):
         super(mainProgram, self).__init__()
 
         self.matListFileName = 'projectMatlist.json'
-        
+        self.pdfFileName = 'projectMatlist.pdf'
+
+
         self.monitor = get_monitors()
         '''Defines monitor object that allows automatic screen window sizing per screen size'''
         self.monitorXSize = int()
@@ -194,17 +204,11 @@ class mainProgram(QMainWindow):
         pass
 
     def addItem(self):
-        # print(type(self.tableWidget.item(0,0)))
-        # print(type(self.tableWidget.item(0,0)))
-        # print(type(self.tableWidget.item(0,0)))
         if self.dockItemSelect.currentText() not in [self.tableWidget.item(i,0).text() for i in range(self.tableWidget.rowCount())]:
-
             self.tableWidget.insertRow(self.tableWidget.rowCount())
-
             itemNumberCell = QTableWidgetItem(self.dockItemSelect.currentText())
             itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
             self.tableWidget.setItem(self.tableWidget.rowCount()-1,0,itemNumberCell)
-
             for panelIndex, perPanelCount in enumerate(self.dockItemPanels):
                 cell = customTableWidgetItem(perPanelCount.text())
                 cell.currentTextChanged.connect(self.buildRightDock)
@@ -213,6 +217,7 @@ class mainProgram(QMainWindow):
     def printDataToConsole(self):
         self.developOutputDictionary()
         self.saveJSONFile()
+        self.makePDF()
         pass
 
     def updateDeviceNames(self):
@@ -236,7 +241,32 @@ class mainProgram(QMainWindow):
     def saveJSONFile(self):
         with open(self.matListFileName,'w') as outfile:
             json.dump(self.outputDictionary,outfile)
+
+        '''Saves with form:
+        {'|Panel|':{'description':'|panel description|','|item number|':{'count':'|count|','names':'|[names]|','description':'|item description|'}}}'''
     
+    def makePDF(self):
+        headings = [self.matListFileName]
+        headings.append('')
+        headings.append('')
+        headings.append('Item No.')
+        headings.append('Description')
+        headings.append('Total')
+        for i in self.tableHeaders[1:]:
+            headings.append(i)
+
+        grid = [['' for j in range(self.tableWidget.columnCount())] for i in range(self.tableWidget.rowCount())]
+
+        for row in range(self.tableWidget.rowCount()):
+            for column in range(self.tableWidget.columnCount()):
+                if column != 0:
+                    grid[row][column] = [self.tableWidget.cellWidget(row,column).currentText(),self.tableWidget.cellWidget(row,column).cellDeviceNames]
+                if column == 0:
+                    grid[row][column] = self.tableWidget.item(row,column).text()
+
+        self.pdf = pdf(grid=grid,headings = headings,name=self.pdfFileName)
+        self.pdf.exportPDF()
+
     def mainProgramLoop(self):
         #Functions attached to events or buttons:
         #tableItemSelectionChanged()
@@ -248,6 +278,7 @@ class mainProgram(QMainWindow):
     def deleteItem(self):
         self.tableWidget.removeRow(self.currentlySelectedCell[0])
 
+
 class customTableWidgetItem(QComboBox):
     def __init__(self,text,deviceNames=[]):
         super(customTableWidgetItem,self).__init__()
@@ -255,6 +286,103 @@ class customTableWidgetItem(QComboBox):
         self.addItem('1 Lot')
         self.setCurrentText(text)
         self.cellDeviceNames = deviceNames
+
+
+#--------------------------------------------------------PDF SECTION----------------------------------------------------------------
+class NumberedPageCanvas(Canvas):
+    """
+    http://code.activestate.com/recipes/546511-page-x-of-y-with-reportlab/
+    http://code.activestate.com/recipes/576832/
+    http://www.blog.pythonlibrary.org/2013/08/12/reportlab-how-to-add-page-numbers/
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.pages = []
+
+    def showPage(self):
+        self.pages.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self):
+        page_count = len(self.pages)
+        for page in self.pages:
+            self.__dict__.update(page)
+            self.draw_page_number(page_count)
+            self.draw_rev_number()
+            super().showPage()
+        super().save()
+
+    def draw_page_number(self, page_count):
+        page = "Page %s of %s" % (self._pageNumber, page_count)
+        self.setFont("Helvetica", 8)
+        self.drawRightString(10.75 * inch, 0.25 * inch, page)
+        
+    def draw_rev_number(self):
+        self.setFont("Helvetica", 8)
+        self.drawString(0.25 * inch, 0.25 * inch, 'Rev. 0')
+
+
+class pdf:
+    def __init__(self, grid=[], headings=[], name = '_.pdf', pageWidth = 8.5, pageHeight = 11):
+        
+        self.styleSheet = getSampleStyleSheet()
+        self.pagesize = (pageHeight * inch, pageWidth * inch)
+        self.styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=self.styleSheet['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
+        self.styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=self.styleSheet['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
+        self.doc = SimpleDocTemplate(name, pagesize=self.pagesize)
+        self.doc.__setattr__('topMargin', 0.25*inch)
+        self.doc.__setattr__('leftMargin', 0.25*inch)
+        self.doc.__setattr__('rightMargin', 0.25*inch)
+        self.doc.__setattr__('bottomMargin', 0.25*inch)
+        
+        
+
+        tableData = [['' for i in range(len(grid[0])+2)] for j in range(len(grid)+3)]
+        tableData[0][0] = headings[0]
+        tableData[2][0] = headings[3]
+        tableData[2][1] = headings[4]
+        tableData[2][2] = 'Total'
+        
+        for index, heading in enumerate(headings[5:]):
+            tableData[2][index+2] = heading
+
+        #Item numbers, and per panel counts/device names
+        for rowIndex, row in enumerate(grid):
+            for columnIndex, cell in enumerate(row):
+                if columnIndex != 0:
+                    tempCell = cell[0]
+                    for i in cell[1]:
+                        tempCell = tempCell + '\n' + i
+                    tableData[rowIndex+3][columnIndex+2] = tempCell
+                if columnIndex == 0:
+                    tableData[rowIndex+3][columnIndex] = cell
+        
+        #Total column
+        for rowIndex, row in enumerate(grid):
+            if '1 Lot' not in [i[0] for i in grid[rowIndex][1:]]:
+                tableData[rowIndex+3][2] = sum([int(i[0]) for i in grid[rowIndex][1:]])
+            else:
+                tableData[rowIndex+3][2] = '1 Lot'
+
+        
+        print(tableData)
+        
+        self.elements = []
+        # headings = ['Document Title','Item Number', 'Description', 'Total', 'Panel 1', 'Panel 2', 'Panel 3', etc]
+        self.pdftable = Table(tableData, colWidths= [50 for i in tableData[0]], repeatRows=3, style=[
+            ('GRID',(0,0),(-1,-1),0.5,colors.black),
+            ('SPAN', (0,0), (-1, 0)),
+            ('SPAN', (0,1), (1, 1)),
+            ('SPAN', (2,1), (-1, 1)),
+            ('ALIGN',(0,0),(-1,-1),'CENTER'),
+            ('VALIGN',(0,0),(-1,-1),'TOP')]
+                              )
+        self.elements.append(self.pdftable)
+
+    def exportPDF(self):
+        self.doc.build(self.elements, canvasmaker=NumberedPageCanvas)
+
 
 if  __name__ == "__main__":
     app = QApplication([])
