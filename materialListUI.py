@@ -59,7 +59,6 @@ class mainProgram(QMainWindow):
         
         self.masterMatList = masterMaterialList
         '''Defines a dictionary of form {"|Item No.|":"|Description|"}'''
-        
 
         #Initial Setup
         self.buildMainWindow()
@@ -68,7 +67,7 @@ class mainProgram(QMainWindow):
         self.buildInitialTable(data)
         self.buildRightDock()
 
-        #Main Loop
+        #Main Loop - Contains no code, but comments describe event functionalities
         self.mainProgramLoop()
 
     def buildMainWindow(self):
@@ -116,6 +115,7 @@ class mainProgram(QMainWindow):
                 if panel != 'Item No.':
                     #self.tableWidget.setItem(itemIndex,panelIndex,customTableWidgetItem(data[panel][item]['count']))
                     cell = customTableWidgetItem(data[panel][item]['count'])
+                    cell.cellDeviceNames = data[panel][item]['names']
                     cell.currentTextChanged.connect(self.buildRightDock)
                     self.tableWidget.setCellWidget(itemIndex,panelIndex,cell)
                 if panel == 'Item No.':
@@ -208,40 +208,38 @@ class mainProgram(QMainWindow):
 
     def printDataToConsole(self):
         self.developOutputDictionary()
+        self.saveJSONFile()
         pass
 
     def updateDeviceNames(self):
         self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).cellDeviceNames = [i.text() for i in self.deviceNames]
 
     def developOutputDictionary(self):
-        outputDictionary = {}
+        self.outputDictionary = {}
         for header in self.tableHeaders:
             if header != 'Item No.':
-                outputDictionary[header] = {}
-        for panel in outputDictionary:
-            outputDictionary[panel]['description'] = ''
+                self.outputDictionary[header] = {}
+        for panel in self.outputDictionary:
+            self.outputDictionary[panel]['description'] = ''
             for item in self.uniqueItemNumbers:
                 row = self.uniqueItemNumbers.index(item)
                 column = self.tableHeaders.index(panel)
-                outputDictionary[panel][item] = {}
-                outputDictionary[panel][item]['count'] = self.tableWidget.cellWidget(row,column).currentText()
-                outputDictionary[panel][item]['names'] = self.tableWidget.cellWidget(row,column).cellDeviceNames
-                outputDictionary[panel][item]['description'] = ''
+                self.outputDictionary[panel][item] = {}
+                self.outputDictionary[panel][item]['count'] = self.tableWidget.cellWidget(row,column).currentText()
+                self.outputDictionary[panel][item]['names'] = self.tableWidget.cellWidget(row,column).cellDeviceNames
+                self.outputDictionary[panel][item]['description'] = ''
                     
+    def saveJSONFile(self):
+        with open(self.matListFileName,'w') as outfile:
+            json.dump(self.outputDictionary,outfile)
+    
     def mainProgramLoop(self):
         #Functions attached to events or buttons:
         #tableItemSelectionChanged()
         #tableItemChanged()
         #addItem()
         #printDataToConsole()
-        
-        
         pass
-
-# class customTableWidgetItem(QTableWidgetItem):
-#     def __init__(self,text,deviceNames=[]):
-#         super(customTableWidgetItem,self).__init__(text)
-#         self.deviceNames = deviceNames
 
 class customTableWidgetItem(QComboBox):
     def __init__(self,text,deviceNames=[]):
@@ -250,8 +248,6 @@ class customTableWidgetItem(QComboBox):
         self.addItem('1 Lot')
         self.setCurrentText(text)
         self.cellDeviceNames = deviceNames
-
-
 
 if  __name__ == "__main__":
     app = QApplication([])
