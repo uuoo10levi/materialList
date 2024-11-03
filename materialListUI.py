@@ -52,6 +52,8 @@ class mainProgram(QMainWindow):
         '''Defines space between the add section of the right-side dock and the rest of the right-side dock'''
         self.printButton = QPushButton()
         '''Defines button to print the current table to the console'''
+        self.deleteButton = QPushButton()
+
 
         self.currentlySelectedCell = [0,0]
 
@@ -143,6 +145,7 @@ class mainProgram(QMainWindow):
 
         self.addItemButton = QPushButton('Add Entry',clicked=self.addItem)
         self.printButton = QPushButton('Print Data to Console',clicked=self.printDataToConsole)
+        self.deleteButton = QPushButton(f'Delete Row: {self.currentlySelectedCell[0]+1}',clicked=self.deleteItem)
 
         self.deviceNameSlots = 0
         if self.currentlySelectedCell[1] >= 1 and self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText() != '1 Lot':
@@ -171,6 +174,7 @@ class mainProgram(QMainWindow):
         self.dockLayout.addRow(self.addItemButton)
         for i in self.deviceNames:
             self.dockLayout.addRow(i)
+        self.dockLayout.addRow(self.deleteButton)
         self.dockLayout.addRow(self.printButton)
 
 
@@ -240,6 +244,9 @@ class mainProgram(QMainWindow):
         #addItem()
         #printDataToConsole()
         pass
+
+    def deleteItem(self):
+        self.tableWidget.removeRow(self.currentlySelectedCell[0])
 
 class customTableWidgetItem(QComboBox):
     def __init__(self,text,deviceNames=[]):
