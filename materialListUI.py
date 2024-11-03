@@ -145,8 +145,10 @@ class mainProgram(QMainWindow):
         self.printButton = QPushButton('Print Data to Console',clicked=self.printDataToConsole)
 
         self.deviceNameSlots = 0
-        if self.currentlySelectedCell[1] >= 1:
+        if self.currentlySelectedCell[1] >= 1 and self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText() != '1 Lot':
             self.deviceNameSlots = int(self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText())
+        if self.deviceNameSlots > 15:
+            self.deviceNameSlots = 15
             
         
         self.deviceNames = [QLineEdit() for i in range(self.deviceNameSlots)]
@@ -160,6 +162,7 @@ class mainProgram(QMainWindow):
                 self.deviceNames[i].setText(self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).cellDeviceNames[i])
             except:
                 pass
+
 
         self.dockLayout = QFormLayout()
         self.dockLayout.addRow(self.dockItemSelect)
@@ -203,13 +206,28 @@ class mainProgram(QMainWindow):
                 cell.currentTextChanged.connect(self.buildRightDock)
                 self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1,panelIndex+1,cell)
 
-
     def printDataToConsole(self):
+        self.developOutputDictionary()
         pass
 
     def updateDeviceNames(self):
         self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).cellDeviceNames = [i.text() for i in self.deviceNames]
 
+    def developOutputDictionary(self):
+        outputDictionary = {}
+        for header in self.tableHeaders:
+            if header != 'Item No.':
+                outputDictionary[header] = {}
+        for panel in outputDictionary:
+            outputDictionary[panel]['description'] = ''
+            for item in self.uniqueItemNumbers:
+                row = self.uniqueItemNumbers.index(item)
+                column = self.tableHeaders.index(panel)
+                outputDictionary[panel][item] = {}
+                outputDictionary[panel][item]['count'] = self.tableWidget.cellWidget(row,column).currentText()
+                outputDictionary[panel][item]['names'] = self.tableWidget.cellWidget(row,column).cellDeviceNames
+                outputDictionary[panel][item]['description'] = ''
+                    
     def mainProgramLoop(self):
         #Functions attached to events or buttons:
         #tableItemSelectionChanged()
@@ -228,7 +246,8 @@ class mainProgram(QMainWindow):
 class customTableWidgetItem(QComboBox):
     def __init__(self,text,deviceNames=[]):
         super(customTableWidgetItem,self).__init__()
-        self.addItems([str(i) for i in range(0,16)])
+        self.addItems([str(i) for i in range(0,999)])
+        self.addItem('1 Lot')
         self.setCurrentText(text)
         self.cellDeviceNames = deviceNames
 
