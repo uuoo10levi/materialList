@@ -1,7 +1,7 @@
 import sys
 from screeninfo import get_monitors
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QGridLayout, QComboBox, QFrame, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QPlainTextEdit, QSpacerItem
+from PyQt5.QtWidgets import QInputDialog, QLabel, QGridLayout, QComboBox, QFrame, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QPlainTextEdit, QSpacerItem
 import json
 
 
@@ -15,11 +15,13 @@ from reportlab.pdfgen.canvas import Canvas
 
 
 class mainProgram(QMainWindow):
-    def __init__(self, tableHeaders = ['Item No.'], masterMaterialList = {'':''}):
+    def __init__(self, matListFileName = 'projectMatlist.json', masterMaterialList = {'':''}):
         super(mainProgram, self).__init__()
 
-        self.matListFileName = 'projectMatlist.json'
-        self.pdfFileName = 'projectMatlist.pdf'
+    
+
+        self.matListFileName = matListFileName
+        self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
 
 
         self.monitor = get_monitors()
@@ -41,7 +43,7 @@ class mainProgram(QMainWindow):
         '''Defines Main Scrollable Table'''
         self.tableWidgetItems = [[]] #customTableWidgetItem
         '''Defines objects to be slotted into main table cells'''
-        self.tableHeaders = tableHeaders
+        self.tableHeaders = ['Item No.']
         '''Defines headers for the main table \n'''
         
 
@@ -92,17 +94,49 @@ class mainProgram(QMainWindow):
         self.setGeometry(QtCore.QRect(self.xShift,self.yShift,self.xSize,self.ySize))
         self.setWindowTitle('Add Material to Contract')
 
+    def addPanel(self):
+        panel, done = QInputDialog.getText(self, 'New Panel', 'Enter Name for New Panel:')
+        self.tableHeaders.append(panel)
+        self.tableWidget.insertColumn(self.tableWidget.columnCount())
+        for row in range(self.tableWidget.rowCount()):
+            cell = customTableWidgetItem('')
+            cell.cellDeviceNames = []
+            cell.currentTextChanged.connect(self.buildRightDock)
+            self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
+        message = QDialog()
+        layout = QFormLayout()
+        messageText = QLabel()
+        messageText.setText('Panel Name will Appear on Program Reboot')
+        layout.addWidget(messageText)
+        message.setLayout(layout)
+        message.exec()
+        self.saveJSONFile()
+
+
+    def buildNewMatlist(self):
+        self.matListFileName = 'newFile.json'
+        self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
+
+
+
+        pass
+    
     def importData(self, input):
         '''If input is a string representing a path to a json file, import data from the json file\n
         If input is a dictionary, import data from the dictionary'''
-        if type(input) == type(str()):
+        if type(input) == type(str()) and input != 'new':
             with open(input) as jsonFile:
                 data = json.load(jsonFile)
+                for i in list(data.keys()):
+                    self.tableHeaders.append(i)
         
         if type(input) == type(dict()):
             data = input
             for i in list(data.keys()):
                 self.tableHeaders.append(i)
+
+        if input == 'new':
+            self.buildNewMatlist()
 
         return data   
 
@@ -156,6 +190,7 @@ class mainProgram(QMainWindow):
         self.addItemButton = QPushButton('Add Entry',clicked=self.addItem)
         self.printButton = QPushButton('Print Data to Console',clicked=self.printDataToConsole)
         self.deleteButton = QPushButton(f'Delete Row: {self.currentlySelectedCell[0]+1}',clicked=self.deleteItem)
+        self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
 
         self.deviceNameSlots = 0
         if self.currentlySelectedCell[1] >= 1 and self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText() != '1 Lot':
@@ -176,6 +211,8 @@ class mainProgram(QMainWindow):
             except:
                 pass
 
+        
+
 
         self.dockLayout = QFormLayout()
         self.dockLayout.addRow(self.dockItemSelect)
@@ -185,6 +222,7 @@ class mainProgram(QMainWindow):
         for i in self.deviceNames:
             self.dockLayout.addRow(i)
         self.dockLayout.addRow(self.deleteButton)
+        self.dockLayout.addRow(self.addPanelButton)
         self.dockLayout.addRow(self.printButton)
 
 
@@ -278,7 +316,6 @@ class mainProgram(QMainWindow):
     def deleteItem(self):
         self.tableWidget.removeRow(self.currentlySelectedCell[0])
 
-
 class customTableWidgetItem(QComboBox):
     def __init__(self,text,deviceNames=[]):
         super(customTableWidgetItem,self).__init__()
@@ -286,7 +323,6 @@ class customTableWidgetItem(QComboBox):
         self.addItem('1 Lot')
         self.setCurrentText(text)
         self.cellDeviceNames = deviceNames
-
 
 #--------------------------------------------------------PDF SECTION----------------------------------------------------------------
 class NumberedPageCanvas(Canvas):
@@ -321,7 +357,6 @@ class NumberedPageCanvas(Canvas):
     def draw_rev_number(self):
         self.setFont("Helvetica", 8)
         self.drawString(0.25 * inch, 0.25 * inch, 'Rev. 0')
-
 
 class pdf:
     def __init__(self, grid=[], headings=[], name = '_.pdf', pageWidth = 8.5, pageHeight = 11):
@@ -366,11 +401,14 @@ class pdf:
                 tableData[rowIndex+3][2] = '1 Lot'
 
         
-        print(tableData)
         
         self.elements = []
         # headings = ['Document Title','Item Number', 'Description', 'Total', 'Panel 1', 'Panel 2', 'Panel 3', etc]
-        self.pdftable = Table(tableData, colWidths= [50 for i in tableData[0]], repeatRows=3, style=[
+        width = pageWidth*inch
+        colWidths = [50,100,50]
+        for i in tableData[0][3:]:
+            colWidths.append((width-200)/len(tableData[0][3:]))
+        self.pdftable = Table(tableData, colWidths=colWidths, repeatRows=3, style=[
             ('GRID',(0,0),(-1,-1),0.5,colors.black),
             ('SPAN', (0,0), (-1, 0)),
             ('SPAN', (0,1), (1, 1)),
@@ -385,7 +423,7 @@ class pdf:
 
 
 if  __name__ == "__main__":
-    app = QApplication([])
-    application = mainProgram(tableHeaders=['Item No.','Panel B1','Panel B2', 'Panel B3'],masterMaterialList={'3J':'','44':'Test','55':'Pierce','Test':'Test2'})
+    app = QApplication(sys.argv)
+    application = mainProgram(masterMaterialList={'3J':'','44':'Test','55':'Pierce','Test':'Test2'})
     application.show()
     sys.exit(app.exec())
