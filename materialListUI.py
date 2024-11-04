@@ -18,7 +18,30 @@ class mainProgram(QMainWindow):
     def __init__(self, matListFileName = 'projectMatlist.json', masterMaterialList = {'':''}):
         super(mainProgram, self).__init__()
 
-    
+
+        #--------------------------------------------MAKE THIS ITS OWN FUNCTION------------------------------------------
+        #----------------------------ADD FILE DIALOG TO ALLOW SELECTION OF EXISTING MATLIST------------------------------
+        self.newFile = False
+        self.newFileDialog = QDialog()
+        self.newFileDialog.setWindowTitle('New Material List?')
+        self.newFileDialog.setMinimumSize(400,50)
+        self.newFileDialogLayout = QFormLayout()
+        self.newFileDialogComboBox = QComboBox()
+        self.newFileDialogMessage = QLabel("Create New Material List?")
+        self.newFileDialogComboBox.addItems(['Yes','No'])
+        self.newFileDialogAccept = QPushButton('Enter')
+        self.newFileDialogAccept.clicked.connect(self.newFileDialog.close)
+        self.newFileDialogLayout.addWidget(self.newFileDialogMessage)
+        self.newFileDialogLayout.addWidget(self.newFileDialogComboBox)
+        self.newFileDialogLayout.addWidget(self.newFileDialogAccept)
+        self.newFileDialog.setLayout(self.newFileDialogLayout)
+        
+        self.newFileDialog.exec()
+        if self.newFileDialogComboBox.currentText() == 'Yes':
+            self.newFile = True
+        #----------------------------------------------------------------------------------------------------------------
+
+
 
         self.matListFileName = matListFileName
         self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
@@ -76,7 +99,10 @@ class mainProgram(QMainWindow):
 
         #Initial Setup
         self.buildMainWindow()
-        data = self.importData(self.matListFileName)
+        if self.newFile:
+            data = self.buildNewMatlist()
+        else:
+            data = self.importData(self.matListFileName)
         self.getUniqueItemNumbers(data)
         self.buildInitialTable(data)
         self.buildRightDock()
@@ -106,38 +132,32 @@ class mainProgram(QMainWindow):
         message = QDialog()
         layout = QFormLayout()
         messageText = QLabel()
-        messageText.setText('Panel Name will Appear on Program Reboot')
+        messageText.setText('Panel Name will Display Properly on Program Reboot')
         layout.addWidget(messageText)
         message.setLayout(layout)
         message.exec()
         self.saveJSONFile()
 
-
     def buildNewMatlist(self):
         self.matListFileName = 'newFile.json'
         self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
 
+        #if type(input) == type(dict()):
+        data = {"Panel":{"item":{"count":'0',"names":[],"description":""}}}
+        for i in list(data.keys()):
+            self.tableHeaders.append(i)
 
-
-        pass
+        return data
     
     def importData(self, input):
         '''If input is a string representing a path to a json file, import data from the json file\n
         If input is a dictionary, import data from the dictionary'''
-        if type(input) == type(str()) and input != 'new':
-            with open(input) as jsonFile:
-                data = json.load(jsonFile)
-                for i in list(data.keys()):
-                    self.tableHeaders.append(i)
-        
-        if type(input) == type(dict()):
-            data = input
+        #if type(input) == type(str()) and input != 'new':
+        with open(input) as jsonFile:
+            data = json.load(jsonFile)
             for i in list(data.keys()):
                 self.tableHeaders.append(i)
-
-        if input == 'new':
-            self.buildNewMatlist()
-
+        
         return data   
 
     def getUniqueItemNumbers(self,data):
@@ -277,6 +297,7 @@ class mainProgram(QMainWindow):
                 self.outputDictionary[panel][item]['description'] = ''
                     
     def saveJSONFile(self):
+        self.developOutputDictionary()
         with open(self.matListFileName,'w') as outfile:
             json.dump(self.outputDictionary,outfile)
 
