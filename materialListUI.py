@@ -4,8 +4,6 @@ from screeninfo import get_monitors
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QFrame, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QPlainTextEdit, QSpacerItem
 import json
-
-
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape, inch
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Table
@@ -300,8 +298,8 @@ class mainProgram(QMainWindow):
                 row = self.uniqueItemNumbers.index(item)
                 column = self.tableHeaders.index(panel)
                 self.outputDictionary[panel][item] = {}
-                self.outputDictionary[panel][item]['count'] = self.tableWidget.cellWidget(row,column).currentText()
-                self.outputDictionary[panel][item]['names'] = self.tableWidget.cellWidget(row,column).cellDeviceNames
+                self.outputDictionary[panel][item]['count'] = self.tableWidget.cellWidget(row,column).countSelect.value()
+                self.outputDictionary[panel][item]['names'] = [i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames]
                 self.outputDictionary[panel][item]['description'] = ''
                     
     def saveJSONFile(self):
@@ -327,7 +325,7 @@ class mainProgram(QMainWindow):
         for row in range(self.tableWidget.rowCount()):
             for column in range(self.tableWidget.columnCount()):
                 if column != 0:
-                    grid[row][column] = [self.tableWidget.cellWidget(row,column).currentText(),self.tableWidget.cellWidget(row,column).cellDeviceNames]
+                    grid[row][column] = [self.tableWidget.cellWidget(row,column).countSelect.value(),[i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames]]
                 if column == 0:
                     grid[row][column] = self.tableWidget.item(row,column).text()
 
@@ -344,15 +342,6 @@ class mainProgram(QMainWindow):
 
     def deleteItem(self):
         self.tableWidget.removeRow(self.currentlySelectedCell[0])
-
-# Deprecated Class, See advancedCustomTableWidgetItem
-# class customTableWidgetItem(QComboBox):
-#     def __init__(self,text,deviceNames=[]):
-#         super(customTableWidgetItem,self).__init__()
-#         self.addItems([str(i) for i in range(0,999)])
-#         self.addItem('1 Lot')
-#         self.setCurrentText(text)
-#         self.cellDeviceNames = deviceNames
 
 class advancedCustomTableWidgetItem(QTableWidget):
     def __init__(self,count=0,deviceNames=[]):
@@ -412,7 +401,6 @@ class advancedCustomTableWidgetItem(QTableWidget):
                 self.layout1.removeWidget(self.deviceNames[i])
             self.countSelect.setValue(0)
             self.updateDeviceNameSlots()
-
 
 #--------------------------------------------------------PDF SECTION----------------------------------------------------------------
 class NumberedPageCanvas(Canvas):
@@ -476,7 +464,7 @@ class pdf:
         for rowIndex, row in enumerate(grid):
             for columnIndex, cell in enumerate(row):
                 if columnIndex != 0:
-                    tempCell = cell[0]
+                    tempCell = str(cell[0])
                     for i in cell[1]:
                         tempCell = tempCell + '<br/>' + i
                     tableData[rowIndex+3][columnIndex+2] = tempCell
@@ -521,7 +509,6 @@ class pdf:
 
     def exportPDF(self):
         self.doc.build(self.elements, canvasmaker=NumberedPageCanvas)
-
 
 if  __name__ == "__main__":
     app = QApplication(sys.argv)
