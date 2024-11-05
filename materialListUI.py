@@ -109,7 +109,6 @@ class mainProgram(QMainWindow):
         #Main Loop - Contains no code, but comments describe event functionalities
         self.mainProgramLoop()
 
-    @QtCore.pyqtSlot(int)
     def resizeCell(self):
         self.tableWidget.resizeColumnsToContents()
         self.tableWidget.resizeRowsToContents()
