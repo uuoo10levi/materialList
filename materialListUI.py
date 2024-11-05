@@ -125,9 +125,9 @@ class mainProgram(QMainWindow):
         self.tableHeaders.append(panel)
         self.tableWidget.insertColumn(self.tableWidget.columnCount())
         for row in range(self.tableWidget.rowCount()):
-            cell = customTableWidgetItem('')
-            cell.cellDeviceNames = []
-            cell.currentTextChanged.connect(self.buildRightDock)
+            cell = advancedCustomTableWidgetItem()
+            #cell.cellDeviceNames = []
+            #cell.currentTextChanged.connect(self.buildRightDock)
             self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
         message = QDialog()
         layout = QFormLayout()
@@ -179,9 +179,10 @@ class mainProgram(QMainWindow):
         for panelIndex, panel in enumerate(self.tableHeaders):
             for itemIndex, item in enumerate(self.uniqueItemNumbers):
                 if panel != 'Item No.':
-                    cell = customTableWidgetItem(data[panel][item]['count'])
-                    cell.cellDeviceNames = data[panel][item]['names']
-                    cell.currentTextChanged.connect(self.buildRightDock)
+                    #cell = customTableWidgetItem(data[panel][item]['count'])
+                    cell = advancedCustomTableWidgetItem()
+                    #cell.cellDeviceNames = data[panel][item]['names']
+                    #cell.currentTextChanged.connect(self.buildRightDock)
                     self.tableWidget.setCellWidget(itemIndex,panelIndex,cell)
                 if panel == 'Item No.':
                     itemNumberCell = QTableWidgetItem(item)
@@ -211,24 +212,24 @@ class mainProgram(QMainWindow):
         self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
 
-        self.deviceNameSlots = 0
-        if self.currentlySelectedCell[1] >= 1 and self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText() != '1 Lot':
-            self.deviceNameSlots = int(self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText())
-        if self.deviceNameSlots > 15:
-            self.deviceNameSlots = 15
+        #self.deviceNameSlots = 0
+        #if self.currentlySelectedCell[1] >= 1 and self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText() != '1 Lot':
+        #   self.deviceNameSlots = int(self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText())
+        #if self.deviceNameSlots > 15:
+        #    self.deviceNameSlots = 15
             
         
-        self.deviceNames = [QLineEdit() for i in range(self.deviceNameSlots)]
-        for i in range(len(self.deviceNames)):
-            self.deviceNames[i].editingFinished.connect(self.updateDeviceNames)
+        #self.deviceNames = [QLineEdit() for i in range(self.deviceNameSlots)]
+        #for i in range(len(self.deviceNames)):
+        #    self.deviceNames[i].editingFinished.connect(self.updateDeviceNames)
 
 
-        for i in range(len(self.deviceNames)):
-            self.deviceNames[i].setPlaceholderText(f'Device {i+1} Name:')
-            try:
-                self.deviceNames[i].setText(self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).cellDeviceNames[i])
-            except:
-                pass
+        #for i in range(len(self.deviceNames)):
+        #    self.deviceNames[i].setPlaceholderText(f'Device {i+1} Name:')
+        #    try:
+        #        self.deviceNames[i].setText(self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).cellDeviceNames[i])
+        #    except:
+        #        pass
 
 
         self.dockLayout = QFormLayout()
@@ -236,8 +237,8 @@ class mainProgram(QMainWindow):
         for i in self.dockItemPanels:
             self.dockLayout.addRow(i)
         self.dockLayout.addRow(self.addItemButton)
-        for i in self.deviceNames:
-            self.dockLayout.addRow(i)
+        #for i in self.deviceNames:
+        #    self.dockLayout.addRow(i)
         self.dockLayout.addRow(self.addPanelButton)
         self.dockLayout.addRow(self.deletePanelButton)
         self.dockLayout.addRow(self.deleteButton)
@@ -269,8 +270,9 @@ class mainProgram(QMainWindow):
             itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
             self.tableWidget.setItem(self.tableWidget.rowCount()-1,0,itemNumberCell)
             for panelIndex, perPanelCount in enumerate(self.dockItemPanels):
-                cell = customTableWidgetItem(perPanelCount.text())
-                cell.currentTextChanged.connect(self.buildRightDock)
+                #cell = customTableWidgetItem(perPanelCount.text())
+                cell = advancedCustomTableWidgetItem()
+                #cell.currentTextChanged.connect(self.buildRightDock)
                 self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1,panelIndex+1,cell)
 
     def printDataToConsole(self):
