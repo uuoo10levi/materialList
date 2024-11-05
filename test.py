@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QCheckBox, QSpinBox, QGridLayout, QApplication, QMainWindow, QWidget, QTableWidget, QLineEdit
 import sys
 
-
+  
 class customTableWidgetItem(QWidget):
     def __init__(self,deviceNames=[]):
         super(customTableWidgetItem,self).__init__()
