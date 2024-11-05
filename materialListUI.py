@@ -357,7 +357,7 @@ class advancedCustomTableWidgetItem(QWidget):
 
         self.layout1 = QGridLayout()
         self.countSelect = QSpinBox()
-        self.checkBox = QCheckBox()
+        self.oneLotCheckBox = QCheckBox()
         self.widget = QWidget()
         self.oneLotSelected = False
 
@@ -370,11 +370,11 @@ class advancedCustomTableWidgetItem(QWidget):
             self.deviceNames[index].setText(deviceNames[index])
 
         self.countSelect.valueChanged.connect(self.updateDeviceNameSlots)
-        self.checkBox.clicked.connect(self.oneLot)
-        self.checkBox.setText('1 LOT')
+        self.oneLotCheckBox.clicked.connect(self.oneLot)
+        self.oneLotCheckBox.setText('1 LOT')
 
         self.layout1.addWidget(self.countSelect,0,0)
-        self.layout1.addWidget(self.checkBox,0,1)
+        self.layout1.addWidget(self.oneLotCheckBox,0,1)
         for i in range(len(self.deviceNames)):
             self.layout1.addWidget(self.deviceNames[i],i+1,0,1,2)
         
@@ -406,7 +406,7 @@ class advancedCustomTableWidgetItem(QWidget):
         
 
     def oneLot(self):
-        self.oneLotSelected = self.checkBox.isChecked()
+        self.oneLotSelected = self.oneLotCheckBox.isChecked()
         if self.oneLotSelected:
             for i in reversed(range(len(self.deviceNames))):
                 self.layout1.removeWidget(self.deviceNames[i])
@@ -523,6 +523,8 @@ class pdf:
 
 if  __name__ == "__main__":
     app = QApplication(sys.argv)
-    application = mainProgram(masterMaterialList={'3J':'','44':'Test','55':'Pierce','Test':'Test2'})
+    with open('json/MasterList.json') as file:
+        masterList = json.load(file)
+    application = mainProgram(masterMaterialList=masterList)
     application.show()
     sys.exit(app.exec())
