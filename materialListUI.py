@@ -1,7 +1,7 @@
 import sys
 from screeninfo import get_monitors
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QInputDialog, QLabel, QGridLayout, QComboBox, QFrame, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QPlainTextEdit, QSpacerItem
+from PyQt5.QtWidgets import QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QFrame, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QPlainTextEdit, QSpacerItem
 import json
 
 
@@ -64,7 +64,7 @@ class mainProgram(QMainWindow):
 
         self.tableWidget = QTableWidget()                   
         '''Defines Main Scrollable Table'''
-        self.tableWidgetItems = [[]] #customTableWidgetItem
+        self.tableWidgetItems = [[]] 
         '''Defines objects to be slotted into main table cells'''
         self.tableHeaders = ['Item No.']
         '''Defines headers for the main table \n'''
@@ -179,13 +179,11 @@ class mainProgram(QMainWindow):
         for panelIndex, panel in enumerate(self.tableHeaders):
             for itemIndex, item in enumerate(self.uniqueItemNumbers):
                 if panel != 'Item No.':
-                    #self.tableWidget.setItem(itemIndex,panelIndex,customTableWidgetItem(data[panel][item]['count']))
                     cell = customTableWidgetItem(data[panel][item]['count'])
                     cell.cellDeviceNames = data[panel][item]['names']
                     cell.currentTextChanged.connect(self.buildRightDock)
                     self.tableWidget.setCellWidget(itemIndex,panelIndex,cell)
                 if panel == 'Item No.':
-                    #itemNumberCell = customTableWidgetItem(item)
                     itemNumberCell = QTableWidgetItem(item)
                     itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
                     self.tableWidget.setItem(itemIndex,panelIndex,itemNumberCell)
@@ -211,6 +209,7 @@ class mainProgram(QMainWindow):
         self.printButton = QPushButton('Print Data to Console',clicked=self.printDataToConsole)
         self.deleteButton = QPushButton(f'Delete Row: {self.currentlySelectedCell[0]+1}',clicked=self.deleteItem)
         self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
+        self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
 
         self.deviceNameSlots = 0
         if self.currentlySelectedCell[1] >= 1 and self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText() != '1 Lot':
@@ -231,8 +230,6 @@ class mainProgram(QMainWindow):
             except:
                 pass
 
-        
-
 
         self.dockLayout = QFormLayout()
         self.dockLayout.addRow(self.dockItemSelect)
@@ -241,8 +238,9 @@ class mainProgram(QMainWindow):
         self.dockLayout.addRow(self.addItemButton)
         for i in self.deviceNames:
             self.dockLayout.addRow(i)
-        self.dockLayout.addRow(self.deleteButton)
         self.dockLayout.addRow(self.addPanelButton)
+        self.dockLayout.addRow(self.deletePanelButton)
+        self.dockLayout.addRow(self.deleteButton)
         self.dockLayout.addRow(self.printButton)
 
 
@@ -253,6 +251,9 @@ class mainProgram(QMainWindow):
         self.dock = QDockWidget('Menu')
         self.dock.setWidget(self.dockMenu)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dock) 
+
+    def deletePanel(self):
+        self.tableWidget.removeColumn(self.currentlySelectedCell[1])
 
     def tableItemSelectionChanged(self):
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
@@ -345,6 +346,65 @@ class customTableWidgetItem(QComboBox):
         self.setCurrentText(text)
         self.cellDeviceNames = deviceNames
 
+class advancedCustomTableWidgetItem(QTableWidget):
+    def __init__(self,deviceNames=[]):
+        super(advancedCustomTableWidgetItem,self).__init__()
+        self.layout1 = QGridLayout()
+        self.countSelect = QSpinBox()
+        self.checkBox = QCheckBox()
+        self.widget = QWidget()
+        self.oneLotSelected = False
+
+        self.countSelect.setValue(len(deviceNames))
+        self.deviceNames = [QLineEdit() for i in deviceNames]
+        for i in range(len(deviceNames)):
+            self.deviceNames[i].setText(deviceNames[i])
+        
+        for index in range(len(self.deviceNames)):
+            print(deviceNames[index])
+            self.deviceNames[index].setText(deviceNames[index])
+
+        self.countSelect.valueChanged.connect(self.updateDeviceNameSlots)
+        self.checkBox.clicked.connect(self.oneLot)
+        self.checkBox.setText('1 LOT')
+
+        self.layout1.addWidget(self.countSelect,0,0)
+        self.layout1.addWidget(self.checkBox,0,1)
+        for i in range(self.countSelect.value()):
+            self.layout1.addWidget(self.deviceNames[i],i+1,0,1,2)
+        
+        self.widget.setLayout(self.layout1)
+        self.setLayout(self.layout1)
+
+    def updateDeviceNameSlots(self):
+        while self.countSelect.value() != len(self.deviceNames):
+            if self.countSelect.value() > len(self.deviceNames):
+                self.addDeviceNameSlot()
+            if self.countSelect.value() < len(self.deviceNames):
+                self.removeDeviceNameSlot()
+        
+
+    def addDeviceNameSlot(self):
+        self.deviceNames.append(QLineEdit())
+        self.layout1.addWidget(self.deviceNames[-1],len(self.deviceNames)+1,0,1,2)
+        if self.oneLotSelected:
+            self.countSelect.setValue(0)
+            self.deviceNames = []
+
+    def removeDeviceNameSlot(self):
+        self.layout1.removeWidget(self.deviceNames[-1])
+        self.deviceNames.pop()
+        
+
+    def oneLot(self):
+        self.oneLotSelected = self.checkBox.isChecked()
+        if self.oneLotSelected:
+            for i in reversed(range(len(self.deviceNames))):
+                self.layout1.removeWidget(self.deviceNames[i])
+            self.countSelect.setValue(0)
+            self.updateDeviceNameSlots()
+
+
 #--------------------------------------------------------PDF SECTION----------------------------------------------------------------
 class NumberedPageCanvas(Canvas):
     """
@@ -381,7 +441,7 @@ class NumberedPageCanvas(Canvas):
 
 class pdf:
     def __init__(self, grid=[], headings=[], name = '_.pdf', pageWidth = 8.5, pageHeight = 11):
-        
+        print(grid)
         self.styleSheet = getSampleStyleSheet()
         self.pagesize = (pageHeight * inch, pageWidth * inch)
         self.styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=self.styleSheet['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
@@ -409,7 +469,7 @@ class pdf:
                 if columnIndex != 0:
                     tempCell = cell[0]
                     for i in cell[1]:
-                        tempCell = tempCell + '\n' + i
+                        tempCell = tempCell + '<br/>' + i
                     tableData[rowIndex+3][columnIndex+2] = tempCell
                 if columnIndex == 0:
                     tableData[rowIndex+3][columnIndex] = cell
@@ -429,6 +489,17 @@ class pdf:
         colWidths = [50,100,50]
         for i in tableData[0][3:]:
             colWidths.append((width-200)/len(tableData[0][3:]))
+
+
+        for i in range(len(tableData)):
+            for j in range(len(tableData[i])):
+                if j != 1:
+                    tableData[i][j] = Paragraph(str(tableData[i][j]), self.styleCustomCenterJustified)
+                
+        for i in range(len(tableData)):
+            if i > 2:
+                tableData[i][1] = Paragraph(str(tableData[i][1]), self.styleCustomLeftJustified)
+
         self.pdftable = Table(tableData, colWidths=colWidths, repeatRows=3, style=[
             ('GRID',(0,0),(-1,-1),0.5,colors.black),
             ('SPAN', (0,0), (-1, 0)),
