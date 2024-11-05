@@ -157,7 +157,6 @@ class mainProgram(QMainWindow):
             data = json.load(jsonFile)
             for i in list(data.keys()):
                 self.tableHeaders.append(i)
-        
         return data   
 
     def getUniqueItemNumbers(self,data):
@@ -180,7 +179,9 @@ class mainProgram(QMainWindow):
             for itemIndex, item in enumerate(self.uniqueItemNumbers):
                 if panel != 'Item No.':
                     #cell = customTableWidgetItem(data[panel][item]['count'])
-                    cell = advancedCustomTableWidgetItem()
+                    if data[panel][item]['count'] != '1 Lot':
+                        count = int(data[panel][item]['count'])
+                    cell = advancedCustomTableWidgetItem(count=count,deviceNames=data[panel][item]['names'])
                     #cell.cellDeviceNames = data[panel][item]['names']
                     #cell.currentTextChanged.connect(self.buildRightDock)
                     self.tableWidget.setCellWidget(itemIndex,panelIndex,cell)
@@ -350,7 +351,7 @@ class mainProgram(QMainWindow):
 #         self.cellDeviceNames = deviceNames
 
 class advancedCustomTableWidgetItem(QTableWidget):
-    def __init__(self,deviceNames=[]):
+    def __init__(self,count=0,deviceNames=[]):
         super(advancedCustomTableWidgetItem,self).__init__()
         self.layout1 = QGridLayout()
         self.countSelect = QSpinBox()
@@ -358,13 +359,12 @@ class advancedCustomTableWidgetItem(QTableWidget):
         self.widget = QWidget()
         self.oneLotSelected = False
 
-        self.countSelect.setValue(len(deviceNames))
+        self.countSelect.setValue(count)
         self.deviceNames = [QLineEdit() for i in deviceNames]
         for i in range(len(deviceNames)):
             self.deviceNames[i].setText(deviceNames[i])
         
         for index in range(len(self.deviceNames)):
-            print(deviceNames[index])
             self.deviceNames[index].setText(deviceNames[index])
 
         self.countSelect.valueChanged.connect(self.updateDeviceNameSlots)
@@ -373,11 +373,13 @@ class advancedCustomTableWidgetItem(QTableWidget):
 
         self.layout1.addWidget(self.countSelect,0,0)
         self.layout1.addWidget(self.checkBox,0,1)
-        for i in range(self.countSelect.value()):
+        for i in range(len(self.deviceNames)):
             self.layout1.addWidget(self.deviceNames[i],i+1,0,1,2)
         
         self.widget.setLayout(self.layout1)
         self.setLayout(self.layout1)
+
+        self.updateDeviceNameSlots()
 
     def updateDeviceNameSlots(self):
         while self.countSelect.value() != len(self.deviceNames):
@@ -444,7 +446,7 @@ class NumberedPageCanvas(Canvas):
 
 class pdf:
     def __init__(self, grid=[], headings=[], name = '_.pdf', pageWidth = 8.5, pageHeight = 11):
-        print(grid)
+        #print(grid)
         self.styleSheet = getSampleStyleSheet()
         self.pagesize = (pageHeight * inch, pageWidth * inch)
         self.styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=self.styleSheet['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
