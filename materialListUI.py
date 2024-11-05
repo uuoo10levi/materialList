@@ -1,7 +1,7 @@
 import sys
 from screeninfo import get_monitors
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QFrame, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QPlainTextEdit, QSpacerItem
+from PyQt5.QtWidgets import QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QFrame, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QPlainTextEdit, QSpacerItem
 import json
 
 
@@ -113,10 +113,10 @@ class mainProgram(QMainWindow):
     def buildMainWindow(self):
         self.monitorXSize = int(self.monitor[0].width)
         self.monitorYSize = int(self.monitor[0].height)
-        self.xShift = int(self.monitorXSize*.25)
-        self.yShift = int(self.monitorYSize*.25)
-        self.xSize = int(self.monitorXSize/2)
-        self.ySize = int(self.monitorYSize/2)
+        self.xShift = int(self.monitorXSize*.1)
+        self.yShift = int(self.monitorYSize*.1)
+        self.xSize = int(self.monitorXSize*.8)
+        self.ySize = int(self.monitorYSize*.8)
         self.setGeometry(QtCore.QRect(self.xShift,self.yShift,self.xSize,self.ySize))
         self.setWindowTitle('Add Material to Contract')
 
@@ -174,6 +174,7 @@ class mainProgram(QMainWindow):
             self.tableWidget.setColumnWidth(i,200)
         self.tableWidget.setRowCount(dimensions[0])
         self.tableWidget.setHorizontalHeaderLabels(self.tableHeaders)
+        self.tableWidget.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
         
         for panelIndex, panel in enumerate(self.tableHeaders):
             for itemIndex, item in enumerate(self.uniqueItemNumbers):
@@ -192,6 +193,8 @@ class mainProgram(QMainWindow):
 
         self.tableWidget.itemChanged.connect(self.tableItemChanged)
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
+        self.tableWidget.resizeColumnsToContents()
+        self.tableWidget.resizeRowsToContents()
 
         self.setCentralWidget(self.tableWidget)
 
