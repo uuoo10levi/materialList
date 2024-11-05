@@ -1,0 +1,59 @@
+{
+    "Panel B1": {
+        "description": "161kV West Bus",
+        "3J": {
+            "description": "item 3J description",
+            "count": "1",
+            "names": [
+                "B1 - 3J - 1"
+            ]
+        },
+        "44": {
+            "description": "item 44 description",
+            "count": "3",
+            "names": [
+                "B1 - 44 - 1",
+                "B1 - 44 - 2",
+                "B1 - 44 - 3"
+            ]
+        }
+    },
+    "Panel B2": {
+        "description": "161kV Missouri City Line",
+        "3J": {
+            "description": "item 3J description",
+            "count": "2",
+            "names": [
+                "B2 - 3J - 1",
+                "B2 - 3J - 2"
+            ]
+        },
+        "44": {
+            "description": "item 44 description",
+            "count": "2",
+            "names": [
+                "B2 - 44 - 1",
+                "B2 - 44 - 2"
+            ]
+        }
+    },
+    "Panel B3": {
+        "description": "161kV Rockies Ex. South Line",
+        "3J": {
+            "description": "item 3J description",
+            "count": "3",
+            "names": [
+                "B3 - 3J - 1",
+                "B3 - 3J - 2",
+                "B3 - 3J - 3"
+            ]
+        },
+        "44": {
+            "description": "item 44 description",
+            "count": "1",
+            "names": [
+                "B3 - 44 - 1"
+            ]
+        }
+    }
+}
