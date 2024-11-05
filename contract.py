@@ -134,42 +134,37 @@ class pdf:
         self.doc.build(self.elements, canvasmaker=NumberedPageCanvas)
         
 
-def pdfer(contractfile=''):
-    with open(contractfile, 'r') as file:
-        contract = json.load(file)
+def pdfer(contractfile='',contract={}):
+    if contract == {}:
+        with open(contractfile, 'r') as file:
+            contract = json.load(file)
 
     panelList = [PanelObjects(i,name=name) for i, name in enumerate(contract)]
 
 
-    for i,obj in enumerate(panelList):
-        obj.description = contract[obj.name]['description']
-
-
     for j, pnlobj in enumerate(panelList):
+        pnlobj.description = contract[pnlobj.name]['description']
         pnlname = pnlobj.name
         itemList = [Items(itemno=i,description=contract[pnlname][i]['description'],pnltotal=contract[pnlname][i]['count'],names=contract[pnlname][i]['names']) for i in contract[pnlname].keys() if i not in ('description')]
         panelList[j].items = itemList
 
 
     headers = ['Item Number', 'Description', 'Total']
-
-    for i in range(len(panelList)):
-        headers.append(panelList[i].name)
-
     title = ['SHOAL CREEK RELAY EQUPIMENT\nMATERIAL LIST']
     subtitle = ['', '', 'QUANTITY/DEVICE NAME']
-    headers = ['Item Number', 'Description', 'Total']
-        
-    grid = [[0 for j in range(len(panelList)+3)] for i in range(len(panelList)+2)]
+
 
     for i in range(len(panelList)+2):
         title.append("")
             
     for i in range(len(panelList)):
         subtitle.append("")
-        
-    for i in range(len(panelList)):
         headers.append(panelList[i].name + '<br/>' + panelList[i].description) 
+        
+        
+    grid = [[0 for j in range(len(panelList)+3)] for i in range(len(panelList)+2)]
+
+    
 
     # print(headers)
 

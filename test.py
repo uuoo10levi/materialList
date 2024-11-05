@@ -2,17 +2,14 @@ from PyQt5.QtWidgets import QCheckBox, QSpinBox, QGridLayout, QApplication, QMai
 import sys
 
   
-class customTableWidgetItem(QWidget):
-    def __init__(self,deviceNames=['Test']):
+class customTableWidgetItem(QTableWidget):
+    def __init__(self,deviceNames=[]):
         super(customTableWidgetItem,self).__init__()
         self.layout1 = QGridLayout()
         self.countSelect = QSpinBox()
         self.checkBox = QCheckBox()
         self.widget = QWidget()
         self.oneLotSelected = False
-
-        
-        
 
         self.countSelect.setValue(len(deviceNames))
         self.deviceNames = [QLineEdit() for i in deviceNames]
@@ -23,18 +20,14 @@ class customTableWidgetItem(QWidget):
             print(deviceNames[index])
             self.deviceNames[index].setText(deviceNames[index])
 
-
-
         self.countSelect.valueChanged.connect(self.updateDeviceNameSlots)
         self.checkBox.clicked.connect(self.oneLot)
         self.checkBox.setText('1 LOT')
-
 
         self.layout1.addWidget(self.countSelect,0,0)
         self.layout1.addWidget(self.checkBox,0,1)
         for i in range(self.countSelect.value()):
             self.layout1.addWidget(self.deviceNames[i],i+1,0,1,2)
-        
         
         self.widget.setLayout(self.layout1)
         self.setLayout(self.layout1)
@@ -45,6 +38,7 @@ class customTableWidgetItem(QWidget):
                 self.addDeviceNameSlot()
             if self.countSelect.value() < len(self.deviceNames):
                 self.removeDeviceNameSlot()
+        
 
     def addDeviceNameSlot(self):
         self.deviceNames.append(QLineEdit())
@@ -52,7 +46,6 @@ class customTableWidgetItem(QWidget):
         if self.oneLotSelected:
             self.countSelect.setValue(0)
             self.deviceNames = []
-
 
     def removeDeviceNameSlot(self):
         self.layout1.removeWidget(self.deviceNames[-1])

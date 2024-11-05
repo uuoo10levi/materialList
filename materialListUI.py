@@ -340,13 +340,14 @@ class mainProgram(QMainWindow):
     def deleteItem(self):
         self.tableWidget.removeRow(self.currentlySelectedCell[0])
 
-class customTableWidgetItem(QComboBox):
-    def __init__(self,text,deviceNames=[]):
-        super(customTableWidgetItem,self).__init__()
-        self.addItems([str(i) for i in range(0,999)])
-        self.addItem('1 Lot')
-        self.setCurrentText(text)
-        self.cellDeviceNames = deviceNames
+# Deprecated Class, See advancedCustomTableWidgetItem
+# class customTableWidgetItem(QComboBox):
+#     def __init__(self,text,deviceNames=[]):
+#         super(customTableWidgetItem,self).__init__()
+#         self.addItems([str(i) for i in range(0,999)])
+#         self.addItem('1 Lot')
+#         self.setCurrentText(text)
+#         self.cellDeviceNames = deviceNames
 
 class advancedCustomTableWidgetItem(QTableWidget):
     def __init__(self,deviceNames=[]):
