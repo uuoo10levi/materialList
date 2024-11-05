@@ -192,6 +192,7 @@ class mainProgram(QMainWindow):
                     itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
                     self.tableWidget.setItem(itemIndex,panelIndex,itemNumberCell)
 
+        # self.tableWidget.initStyleOption()
         self.tableWidget.itemChanged.connect(self.tableItemChanged)
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
         self.tableWidget.resizeColumnsToContents()
