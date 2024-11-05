@@ -109,6 +109,11 @@ class mainProgram(QMainWindow):
         #Main Loop - Contains no code, but comments describe event functionalities
         self.mainProgramLoop()
 
+    @QtCore.pyqtSlot(int)
+    def resizeCell(self):
+        self.tableWidget.resizeColumnsToContents()
+        self.tableWidget.resizeRowsToContents()
+
     def buildMainWindow(self):
         self.monitorXSize = int(self.monitor[0].width)
         self.monitorYSize = int(self.monitor[0].height)
@@ -174,6 +179,7 @@ class mainProgram(QMainWindow):
         self.tableWidget.setRowCount(dimensions[0])
         self.tableWidget.setHorizontalHeaderLabels(self.tableHeaders)
         self.tableWidget.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+        self.tableWidget.setTabKeyNavigation(False)
         
         for panelIndex, panel in enumerate(self.tableHeaders):
             for itemIndex, item in enumerate(self.uniqueItemNumbers):
@@ -184,7 +190,9 @@ class mainProgram(QMainWindow):
                     cell = advancedCustomTableWidgetItem(count=count,deviceNames=data[panel][item]['names'])
                     #cell.cellDeviceNames = data[panel][item]['names']
                     #cell.currentTextChanged.connect(self.buildRightDock)
+                    cell.countSelect.valueChanged.connect(self.resizeCell)
                     self.tableWidget.setCellWidget(itemIndex,panelIndex,cell)
+                
                 if panel == 'Item No.':
                     itemNumberCell = QTableWidgetItem(item)
                     itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
@@ -343,9 +351,11 @@ class mainProgram(QMainWindow):
     def deleteItem(self):
         self.tableWidget.removeRow(self.currentlySelectedCell[0])
 
-class advancedCustomTableWidgetItem(QTableWidget):
+class advancedCustomTableWidgetItem(QWidget):
     def __init__(self,count=0,deviceNames=[]):
         super(advancedCustomTableWidgetItem,self).__init__()
+        
+
         self.layout1 = QGridLayout()
         self.countSelect = QSpinBox()
         self.checkBox = QCheckBox()
@@ -380,6 +390,8 @@ class advancedCustomTableWidgetItem(QTableWidget):
                 self.addDeviceNameSlot()
             if self.countSelect.value() < len(self.deviceNames):
                 self.removeDeviceNameSlot()
+        
+        
         
 
     def addDeviceNameSlot(self):
