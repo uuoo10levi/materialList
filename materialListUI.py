@@ -1,3 +1,4 @@
+#NOT RELEASED FOR USE
 import sys
 from screeninfo import get_monitors
 from PyQt5 import QtCore, QtGui
