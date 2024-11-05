@@ -1,1 +1,127 @@
-{"Panel B1": {"description": "", "3J": {"count": "998", "names": [], "description": ""}, "44": {"count": "1", "names": ["86-69B"], "description": ""}, "55": {"count": "0", "names": [], "description": ""}}, "Panel B2": {"description": "", "3J": {"count": "998", "names": [], "description": ""}, "44": {"count": "2", "names": ["86-69B", "86-69C"], "description": ""}, "55": {"count": "1 Lot", "names": [], "description": ""}}, "Panel B3": {"description": "", "3J": {"count": "998", "names": ["1", "2", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1"], "description": ""}, "44": {"count": "44", "names": ["21P-CD", "21B-CD", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1"], "description": ""}, "55": {"count": "60", "names": ["1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1"], "description": ""}}, "Test": {"description": "", "3J": {"count": "0", "names": [], "description": ""}, "44": {"count": "0", "names": [], "description": ""}, "55": {"count": "0", "names": [], "description": ""}}}
+{
+    "Panel B1": {
+        "description": "",
+        "3J": {
+            "count": "16",
+            "names": [],
+            "description": ""
+        },
+        "44": {
+            "count": "1",
+            "names": [
+                "86-69B"
+            ],
+            "description": ""
+        },
+        "55": {
+            "count": "0",
+            "names": [],
+            "description": ""
+        }
+    },
+    "Panel B2": {
+        "description": "",
+        "3J": {
+            "count": "16",
+            "names": [],
+            "description": ""
+        },
+        "44": {
+            "count": "2",
+            "names": [
+                "86-69B",
+                "86-69C"
+            ],
+            "description": ""
+        },
+        "55": {
+            "count": "1 Lot",
+            "names": [],
+            "description": ""
+        }
+    },
+    "Panel B3": {
+        "description": "",
+        "3J": {
+            "count": "16",
+            "names": [
+                "1",
+                "2",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1"
+            ],
+            "description": ""
+        },
+        "44": {
+            "count": "44",
+            "names": [
+                "21P-CD",
+                "21B-CD",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1"
+            ],
+            "description": ""
+        },
+        "55": {
+            "count": "60",
+            "names": [
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1",
+                "1"
+            ],
+            "description": ""
+        }
+    },
+    "Test": {
+        "description": "",
+        "3J": {
+            "count": "0",
+            "names": [],
+            "description": ""
+        },
+        "44": {
+            "count": "0",
+            "names": [],
+            "description": ""
+        },
+        "55": {
+            "count": "0",
+            "names": [],
+            "description": ""
+        }
+    }
+}
