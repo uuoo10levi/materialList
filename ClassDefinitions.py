@@ -210,7 +210,10 @@ class mainProgram(QMainWindow):
             self.outputDict[col] = {'description':''}
             rowCounter = 0
             for row in self.data:
-                self.outputDict[col][row[0]] = {'description': '','count':self.data[rowCounter][colCounter+1],'names':self.allDeviceNames[rowCounter][colCounter+1]}
+                count = self.data[rowCounter][colCounter+1]
+                if count == '':
+                    count = '0'
+                self.outputDict[col][row[0]] = {'description': '','count':count,'names':self.allDeviceNames[rowCounter][colCounter+1]}
                 rowCounter += 1 
             colCounter += 1
             
