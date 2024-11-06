@@ -14,9 +14,10 @@ from reportlab.pdfgen.canvas import Canvas
 
 
 class mainProgram(QMainWindow):
-    def __init__(self, matListFileName = 'projectMatlist.json', masterMaterialList = {'':''}):
+    def __init__(self, signalClass, matListFileName = 'projectMatlist.json', masterMaterialList = {'':''}):
         super(mainProgram, self).__init__()
-
+        self.signals = signalClass
+        self.signals.signal1.connect(self.resizeCell)
 
         #--------------------------------------------MAKE THIS ITS OWN FUNCTION------------------------------------------
         #----------------------------ADD FILE DIALOG TO ALLOW SELECTION OF EXISTING MATLIST------------------------------
@@ -128,7 +129,7 @@ class mainProgram(QMainWindow):
         self.tableHeaders.append(panel)
         self.tableWidget.insertColumn(self.tableWidget.columnCount())
         for row in range(self.tableWidget.rowCount()):
-            cell = advancedCustomTableWidgetItem()
+            cell = advancedCustomTableWidgetItem(self.signals)
             #cell.cellDeviceNames = []
             #cell.currentTextChanged.connect(self.buildRightDock)
             self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
@@ -186,7 +187,7 @@ class mainProgram(QMainWindow):
                     #cell = customTableWidgetItem(data[panel][item]['count'])
                     if data[panel][item]['count'] != '1 Lot':
                         count = int(data[panel][item]['count'])
-                    cell = advancedCustomTableWidgetItem(count=count,deviceNames=data[panel][item]['names'])
+                    cell = advancedCustomTableWidgetItem(self.signals, count=count,deviceNames=data[panel][item]['names'])
                     #cell.cellDeviceNames = data[panel][item]['names']
                     #cell.currentTextChanged.connect(self.buildRightDock)
                     cell.countSelect.valueChanged.connect(self.resizeCell)
@@ -281,7 +282,7 @@ class mainProgram(QMainWindow):
             self.tableWidget.setItem(self.tableWidget.rowCount()-1,0,itemNumberCell)
             for panelIndex, perPanelCount in enumerate(self.dockItemPanels):
                 #cell = customTableWidgetItem(perPanelCount.text())
-                cell = advancedCustomTableWidgetItem()
+                cell = advancedCustomTableWidgetItem(self.signals)
                 #cell.currentTextChanged.connect(self.buildRightDock)
                 self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1,panelIndex+1,cell)
 
@@ -351,14 +352,15 @@ class mainProgram(QMainWindow):
         self.tableWidget.removeRow(self.currentlySelectedCell[0])
 
 class advancedCustomTableWidgetItem(QWidget):
-    def __init__(self,count=0,deviceNames=[]):
+    def __init__(self,signalClass, count=0,deviceNames=[]):
         super(advancedCustomTableWidgetItem,self).__init__()
-        
+        self.signals=signalClass
 
         self.layout1 = QGridLayout()
         self.countSelect = QSpinBox()
         self.oneLotCheckBox = QCheckBox()
-        self.widget = QWidget()
+        self.showDevicesCheckBox = QCheckBox()
+        #self.widget = QWidget()
         self.oneLotSelected = False
 
         self.countSelect.setValue(count)
@@ -372,30 +374,40 @@ class advancedCustomTableWidgetItem(QWidget):
         self.countSelect.valueChanged.connect(self.updateDeviceNameSlots)
         self.oneLotCheckBox.clicked.connect(self.oneLot)
         self.oneLotCheckBox.setText('1 LOT')
+        self.showDevicesCheckBox.setText('Show Device Names')
+        self.showDevicesCheckBox.setChecked(True)
+        self.showDevicesCheckBox.stateChanged.connect(self.toggleDevices)
 
+        self.layout1 = QGridLayout()
         self.layout1.addWidget(self.countSelect,0,0)
         self.layout1.addWidget(self.oneLotCheckBox,0,1)
+        self.layout1.addWidget(self.showDevicesCheckBox,1,1)
         for i in range(len(self.deviceNames)):
-            self.layout1.addWidget(self.deviceNames[i],i+1,0,1,2)
-        
-        self.widget.setLayout(self.layout1)
+            self.layout1.addWidget(self.deviceNames[i],i+2,0,1,2)
         self.setLayout(self.layout1)
 
         self.updateDeviceNameSlots()
 
     def updateDeviceNameSlots(self):
-        while self.countSelect.value() != len(self.deviceNames):
-            if self.countSelect.value() > len(self.deviceNames):
-                self.addDeviceNameSlot()
-            if self.countSelect.value() < len(self.deviceNames):
+
+        if self.showDevicesCheckBox.isChecked():
+            while self.countSelect.value() != len(self.deviceNames):
+                if self.countSelect.value() > len(self.deviceNames):
+                    self.addDeviceNameSlot()
+                if self.countSelect.value() < len(self.deviceNames):
+                    self.removeDeviceNameSlot()
+        else:
+            while len(self.deviceNames) > 0:
                 self.removeDeviceNameSlot()
         
-        
-        
+        self.signals.signal1.emit()
+
+    def toggleDevices(self):
+        self.updateDeviceNameSlots()
 
     def addDeviceNameSlot(self):
         self.deviceNames.append(QLineEdit())
-        self.layout1.addWidget(self.deviceNames[-1],len(self.deviceNames)+1,0,1,2)
+        self.layout1.addWidget(self.deviceNames[-1],len(self.deviceNames)+2,0,1,2)
         if self.oneLotSelected:
             self.countSelect.setValue(0)
             self.deviceNames = []
@@ -408,10 +420,20 @@ class advancedCustomTableWidgetItem(QWidget):
     def oneLot(self):
         self.oneLotSelected = self.oneLotCheckBox.isChecked()
         if self.oneLotSelected:
+            self.countSelect.setDisabled(True)
+            self.showDevicesCheckBox.setChecked(False)
+            self.showDevicesCheckBox.setDisabled(True)
             for i in reversed(range(len(self.deviceNames))):
                 self.layout1.removeWidget(self.deviceNames[i])
             self.countSelect.setValue(0)
             self.updateDeviceNameSlots()
+        else:
+            self.countSelect.setDisabled(False)
+            self.showDevicesCheckBox.setDisabled(False)
+
+class signalClass(QWidget):
+    signal1 = QtCore.pyqtSignal()  
+
 
 #--------------------------------------------------------PDF SECTION----------------------------------------------------------------
 class NumberedPageCanvas(Canvas):
@@ -525,6 +547,7 @@ if  __name__ == "__main__":
     app = QApplication(sys.argv)
     with open('json/MasterList.json') as file:
         masterList = json.load(file)
-    application = mainProgram(masterMaterialList=masterList)
+    signals = signalClass()
+    application = mainProgram(signals,masterMaterialList=masterList)
     application.show()
     sys.exit(app.exec())
