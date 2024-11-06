@@ -29,6 +29,7 @@ class ItemTab(QWidget):
         self.itemTabLayout.columnMinimumWidth(50)
         
         
+        
          
         for i, field in enumerate(self.fields.keys()):
             label = field
@@ -42,15 +43,20 @@ class ItemTab(QWidget):
             else:
                 columnspan = 1
                 alignment = Qt.AlignRight
+            if 'rowspan' in list(fields[field].keys()):
+                rowspan = fields[field]['rowspan']
+            else:
+                rowspan = 1
             
             Label = QLabel(label)
             Label.setAlignment(alignment)
+            
                         
             editBox = widgettype
-            editBox.setStyleSheet('max-width: 200')
+            # editBox.setStyleSheet('max-width: 200')
             
             self.itemTabLayout.addWidget(Label, row, (column * 2) + 1, 1, columnspan)
-            self.itemTabLayout.addWidget(editBox, row, (column * 2) + 2)
+            self.itemTabLayout.addWidget(editBox, row, (column * 2) + 2, rowspan, columnspan)
 
         self.setLayout(self.itemTabLayout)
         
@@ -100,6 +106,7 @@ class AddMaterial(QMainWindow):
                 'column': 0,
                 'row': 0
             },
+            
             'Manufacture': {
                 'type': QLineEdit(),
                 'column': 0,
@@ -191,18 +198,137 @@ class AddMaterial(QMainWindow):
                     'column':  0,
                     'row': 19
                 },
-            #Column 2
+                #Column 2
+            'Major Functions': {
+                'type': QPlainTextEdit(),
+                'column': 3,
+                'row': 0,
+                'rowspan': 2
+            },
             'I/O Details': {
                     'type': QLabel(),
-                    'column':  1,
+                    'column': 3,
                     'row': 4,
                     'columnspan': 2
                 },
             'Standard I/O': {
                     'type': QLabel(),
-                    'column':  1,
+                    'column': 3,
                     'row': 5,
                     'columnspan': 2
+                },
+            'Standard Inputs A': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 6
+                },
+            'Standard Inputs B': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 7
+                },
+            'Standard Outputs A': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 8
+                },
+            'Standard Outputs B': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 9
+                },
+            'Addition I/O 1': {
+                    'type': QLabel(),
+                    'column': 3,
+                    'row': 10,
+                    'columnspan': 2
+                },
+            'Addition Inputs 1A': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 11
+                },
+            'Addition Inputs 1B': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 12
+                },
+            'Addition Outputs 1A': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 13
+                },
+            'Addition Outputs 1B': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 14
+                },
+            'Addition I/O 2': {
+                    'type': QLabel(),
+                    'column': 3,
+                    'row': 15,
+                    'columnspan': 2
+                },
+            'Addition Inputs 2A': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 16
+                },
+            'Addition Inputs 2B': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 17
+                },
+            'Addition Outputs 2A': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 18
+                },
+            'Addition Outputs 2B': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 19
+                },
+            'Addition I/O 3': {
+                    'type': QLabel(),
+                    'column': 3,
+                    'row': 20,
+                    'columnspan': 2
+                },
+            'Addition Inputs 3A': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 21
+                },
+            'Addition Inputs 3B': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 22
+                },
+            'Addition Outputs 3A': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 23
+                },
+            'Addition Outputs 3B': {
+                    'type': QLineEdit(),
+                    'column': 3,
+                    'row': 24
+                },
+                'Catalog cut included': {
+                    'type': QCheckBox(),
+                    'column': 3,
+                    'row': 25
+                },
+                'Photo on file': {
+                    'type': QCheckBox(),
+                    'column': 3,
+                    'row': 26
+                },
+                'Check for this on each contract': {
+                    'type': QCheckBox(),
+                    'column': 3,
+                    'row': 27
                 }
             
             },
