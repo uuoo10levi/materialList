@@ -182,11 +182,11 @@ class mainProgram(QMainWindow):
         for item in self.masterMatList.keys():
             self.dockItemSelect.addItem(item)
 
-        self.dockItemPanels = []
-        for panel in self.tableHeaders[1:]:
-            dockItemCountEntry = QLineEdit()
-            dockItemCountEntry.setPlaceholderText(panel)
-            self.dockItemPanels.append(dockItemCountEntry)
+        # self.dockItemPanels = []
+        # for panel in self.tableHeaders[1:]:
+        #     dockItemCountEntry = QLineEdit()
+        #     dockItemCountEntry.setPlaceholderText(panel)
+        #     self.dockItemPanels.append(dockItemCountEntry)
 
         self.addItemButton = QPushButton('Add Entry',clicked=self.addItem)
         self.printButton = QPushButton('Print Data to Console',clicked=self.printDataToConsole)
@@ -216,8 +216,8 @@ class mainProgram(QMainWindow):
 
         self.dockLayout = QFormLayout()
         self.dockLayout.addRow(self.dockItemSelect)
-        for i in self.dockItemPanels:
-            self.dockLayout.addRow(i)
+        # for i in self.dockItemPanels:
+        #     self.dockLayout.addRow(i)
         self.dockLayout.addRow(self.addItemButton)
         #for i in self.deviceNames:
         #    self.dockLayout.addRow(i)
@@ -251,7 +251,9 @@ class mainProgram(QMainWindow):
             itemNumberCell = QTableWidgetItem(self.dockItemSelect.currentText())
             itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
             self.tableWidget.setItem(self.tableWidget.rowCount()-1,0,itemNumberCell)
-            for panelIndex, perPanelCount in enumerate(self.dockItemPanels):
+            #for panelIndex, perPanelCount in enumerate(self.dockItemPanels):
+            #print(len(self.dockItemPanels),self.tableWidget.columnCount())
+            for panelIndex in range(self.tableWidget.columnCount()-1):
                 #cell = customTableWidgetItem(perPanelCount.text())
                 cell = advancedCustomTableWidgetItem(self.signals)
                 #cell.currentTextChanged.connect(self.buildRightDock)
