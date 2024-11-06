@@ -5,6 +5,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtWidgets import QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QFrame, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QPlainTextEdit, QSpacerItem, QTabWidget
 import json
+import addmaterialfields
 
 
 from reportlab.lib import colors
@@ -28,35 +29,37 @@ class ItemTab(QWidget):
         # self.itemTabLayout.columnCount(3)
         self.itemTabLayout.columnMinimumWidth(50)
         
-        
+        # for i, field in enumerate(self.fields):
+            
+            
         
          
-        for i, field in enumerate(self.fields.keys()):
-            label = field
-            widgettype = fields[field]['type']
-            column = fields[field]['column']
-            row = fields[field]['row']
+        # for i, field in enumerate(self.fields.keys()):
+        #     label = field
+        #     widgettype = fields[field]['type']
+        #     column = fields[field]['column']
+        #     row = fields[field]['row']
             
-            if 'columnspan' in list(fields[field].keys()):
-                columnspan = fields[field]['columnspan']
-                alignment = Qt.AlignCenter
-            else:
-                columnspan = 1
-                alignment = Qt.AlignRight
-            if 'rowspan' in list(fields[field].keys()):
-                rowspan = fields[field]['rowspan']
-            else:
-                rowspan = 1
+        #     if 'columnspan' in list(fields[field].keys()):
+        #         columnspan = fields[field]['columnspan']
+        #         alignment = Qt.AlignCenter
+        #     else:
+        #         columnspan = 1
+        #         alignment = Qt.AlignRight
+        #     if 'rowspan' in list(fields[field].keys()):
+        #         rowspan = fields[field]['rowspan']
+        #     else:
+        #         rowspan = 1
             
-            Label = QLabel(label)
-            Label.setAlignment(alignment)
+        #     Label = QLabel(label)
+        #     Label.setAlignment(alignment)
             
                         
-            editBox = widgettype
-            # editBox.setStyleSheet('max-width: 200')
+        #     editBox = widgettype
+        #     # editBox.setStyleSheet('max-width: 200')
             
-            self.itemTabLayout.addWidget(Label, row, (column * 2) + 1, 1, columnspan)
-            self.itemTabLayout.addWidget(editBox, row, (column * 2) + 2, rowspan, columnspan)
+        #     self.itemTabLayout.addWidget(Label, row, (column * 2) + 1, 1, columnspan)
+        #     self.itemTabLayout.addWidget(editBox, row, (column * 2) + 2, rowspan, columnspan)
 
         self.setLayout(self.itemTabLayout)
         
@@ -99,268 +102,14 @@ class AddMaterial(QMainWindow):
         
         # for color in ['red', 'blue', 'green', 'yellow']:
             # tabs.addTab(Color(color), color)
-        self.tabs = {
-            'Relay': {
-                'Item No.': {
-                'type': QLineEdit(),
-                'column': 0,
-                'row': 0
-            },
-            
-            'Manufacture': {
-                'type': QLineEdit(),
-                'column': 0,
-                'row': 1
-            },
-            'Part Number': {
-                'type': QLineEdit(),
-                'column': 0,
-                'row': 2
-            },
-            'Electrical Properties': {
-                'type': QLabel(),
-                'column': 0,
-                'row': 4,
-                'columnspan': 2
-            },
-            'Power Supply Voltage': {
-                    'type': QLineEdit(),
-                    'column':  0,
-                    'row': 5
-                },
-            'Control Voltage': {
-                    'type': QComboBox(),
-                    'column':  0,
-                    'row': 6
-                },
-            'AC Current Input': {
-                    'type': QLineEdit(),
-                    'column':  0,
-                    'row': 7
-                },
-            'AC Voltage Input': {
-                    'type': QLineEdit(),
-                    'column':  0,
-                    'row': 8
-                },
-            'Zones of Protection': {
-                    'type': QLineEdit(),
-                    'column':  0,
-                    'row': 9
-                },
-            'Coil Operation Voltage': {
-                    'type': QLineEdit(),
-                    'column':  0,
-                    'row': 10
-                },
-            'Reset': {
-                    'type': QComboBox(),
-                    'column':  0,
-                    'row': 11
-                },
-            'Meter Form': {
-                    'type': QComboBox(),
-                    'column':  0,
-                    'row': 12
-                },
-            'Number of Phase': {
-                    'type': QSpinBox(),
-                    'column':  0,
-                    'row': 13
-                },
-            'Number of Wires': {
-                    'type': QSpinBox(),
-                    'column':  0,
-                    'row': 14
-                },
-            'Physical Properties': {
-                    'type': QLabel(),
-                    'column':  0,
-                    'row': 15
-                },
-            'Orientation': {
-                    'type': QComboBox(),
-                    'column':  0,
-                    'row': 16
-                },
-            'Mounting': {
-                    'type': QComboBox(),
-                    'column':  0,
-                    'row': 17
-                },
-            'Rack Units': {
-                    'type': QSpinBox(),
-                    'column':  0,
-                    'row': 18
-                },
-            'User Interface': {
-                    'type': QComboBox(),
-                    'column':  0,
-                    'row': 19
-                },
-                #Column 2
-            'Major Functions': {
-                'type': QPlainTextEdit(),
-                'column': 3,
-                'row': 0,
-                'rowspan': 2
-            },
-            'I/O Details': {
-                    'type': QLabel(),
-                    'column': 3,
-                    'row': 4,
-                    'columnspan': 2
-                },
-            'Standard I/O': {
-                    'type': QLabel(),
-                    'column': 3,
-                    'row': 5,
-                    'columnspan': 2
-                },
-            'Standard Inputs A': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 6
-                },
-            'Standard Inputs B': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 7
-                },
-            'Standard Outputs A': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 8
-                },
-            'Standard Outputs B': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 9
-                },
-            'Addition I/O 1': {
-                    'type': QLabel(),
-                    'column': 3,
-                    'row': 10,
-                    'columnspan': 2
-                },
-            'Addition Inputs 1A': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 11
-                },
-            'Addition Inputs 1B': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 12
-                },
-            'Addition Outputs 1A': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 13
-                },
-            'Addition Outputs 1B': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 14
-                },
-            'Addition I/O 2': {
-                    'type': QLabel(),
-                    'column': 3,
-                    'row': 15,
-                    'columnspan': 2
-                },
-            'Addition Inputs 2A': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 16
-                },
-            'Addition Inputs 2B': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 17
-                },
-            'Addition Outputs 2A': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 18
-                },
-            'Addition Outputs 2B': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 19
-                },
-            'Addition I/O 3': {
-                    'type': QLabel(),
-                    'column': 3,
-                    'row': 20,
-                    'columnspan': 2
-                },
-            'Addition Inputs 3A': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 21
-                },
-            'Addition Inputs 3B': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 22
-                },
-            'Addition Outputs 3A': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 23
-                },
-            'Addition Outputs 3B': {
-                    'type': QLineEdit(),
-                    'column': 3,
-                    'row': 24
-                },
-                'Catalog cut included': {
-                    'type': QCheckBox(),
-                    'column': 3,
-                    'row': 25
-                },
-                'Photo on file': {
-                    'type': QCheckBox(),
-                    'column': 3,
-                    'row': 26
-                },
-                'Check for this on each contract': {
-                    'type': QCheckBox(),
-                    'column': 3,
-                    'row': 27
-                }
-            
-            },
-            'Test Switch': {
-             'Item No.': {
-                'type': QLineEdit(),
-                'column': 0,
-                'row': 0
-            },
-             'Test Switch Arrangement A': {
-                'type': QComboBox(),
-                'column': 0,
-                'row': 1
-            }
-            },
-            'Lock Out Relay': {
-             'Item No.': {
-                'type': QLineEdit(),
-                'column': 0,
-                'row': 0
-            },
-             'Decks': {
-                'type': QSpinBox(),
-                'column': 0,
-                'row': 1
-            }   
-            },
-            
-        }
         
-        for i, tab in enumerate(self.tabs.keys()):
-            tabs.addTab(ItemTab(self.tabs[tab]), tab)
+        data = addmaterialfields.data
+        
+        for i, tab in enumerate(data.keys()):
+            print(data[i]['rows'].keys())
+            
+            exit()
+            # tabs.addTab(ItemTab(data[tab]), tab)
         
         self.buildMainWindow()
         self.setCentralWidget(tabs)
@@ -371,7 +120,7 @@ class AddMaterial(QMainWindow):
         self.monitorXSize = int(self.monitor[0].width)
         self.monitorYSize = int(self.monitor[0].height)
         self.xSize = int(self.monitorXSize*.4)
-        self.ySize = int(self.monitorYSize*.4)
+        self.ySize = int(self.monitorYSize*.6)
         self.xShift = int((self.monitorXSize - self.xSize) / 2)
         self.yShift = int((self.monitorYSize - self.ySize) / 2)
         self.setGeometry(QtCore.QRect(self.xShift,self.yShift,self.xSize,self.ySize))
