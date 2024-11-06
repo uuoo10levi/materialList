@@ -307,7 +307,10 @@ class mainProgram(QMainWindow):
         for row in range(self.tableWidget.rowCount()):
             for column in range(self.tableWidget.columnCount()):
                 if column != 0:
-                    grid[row][column] = [self.tableWidget.cellWidget(row,column).countSelect.value(),[i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames]]
+                    if not self.tableWidget.cellWidget(row,column).oneLotCheckBox.isChecked():
+                        grid[row][column] = [self.tableWidget.cellWidget(row,column).countSelect.value(),[i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames]]
+                    else:
+                        grid[row][column] = '1 Lot'
                 if column == 0:
                     grid[row][column] = self.tableWidget.item(row,column).text()
 
@@ -504,9 +507,12 @@ class pdf:
         for rowIndex, row in enumerate(grid):
             for columnIndex, cell in enumerate(row):
                 if columnIndex != 0:
-                    tempCell = str(cell[0])
-                    for i in cell[1]:
-                        tempCell = tempCell + '<br/>' + i
+                    if cell != '1 Lot':
+                        tempCell = str(cell[0])
+                        for i in cell[1]:
+                            tempCell = tempCell + '<br/>' + i
+                    else:
+                        tempCell = '1 Lot'
                     tableData[rowIndex+3][columnIndex+2] = tempCell
                 if columnIndex == 0:
                     tableData[rowIndex+3][columnIndex] = cell
