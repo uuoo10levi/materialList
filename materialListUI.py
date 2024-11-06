@@ -1,16 +1,14 @@
 #NOT RELEASED FOR USE
 import sys
 from screeninfo import get_monitors
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QFrame, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QPlainTextEdit, QSpacerItem
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import QRadioButton, QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QSpacerItem
 import json
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape, inch
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Table
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import styles
 from reportlab.pdfgen.canvas import Canvas
-
 
 
 class mainProgram(QMainWindow):
@@ -19,33 +17,11 @@ class mainProgram(QMainWindow):
         self.signals = signalClass
         self.signals.signal1.connect(self.resizeCell)
 
-        #--------------------------------------------MAKE THIS ITS OWN FUNCTION------------------------------------------
-        #----------------------------ADD FILE DIALOG TO ALLOW SELECTION OF EXISTING MATLIST------------------------------
-        self.newFile = False
-        self.newFileDialog = QDialog()
-        self.newFileDialog.setWindowTitle('New Material List?')
-        self.newFileDialog.setMinimumSize(400,50)
-        self.newFileDialogLayout = QFormLayout()
-        self.newFileDialogComboBox = QComboBox()
-        self.newFileDialogMessage = QLabel("Create New Material List?")
-        self.newFileDialogComboBox.addItems(['Yes','No'])
-        self.newFileDialogAccept = QPushButton('Enter')
-        self.newFileDialogAccept.clicked.connect(self.newFileDialog.close)
-        self.newFileDialogLayout.addWidget(self.newFileDialogMessage)
-        self.newFileDialogLayout.addWidget(self.newFileDialogComboBox)
-        self.newFileDialogLayout.addWidget(self.newFileDialogAccept)
-        self.newFileDialog.setLayout(self.newFileDialogLayout)
-        
-        self.newFileDialog.exec()
-        if self.newFileDialogComboBox.currentText() == 'Yes':
-            self.newFile = True
-        #----------------------------------------------------------------------------------------------------------------
-
-
+        self.startupMessage = startupMessage()
+        self.newFile = self.startupMessage.newFile
 
         self.matListFileName = matListFileName
         self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
-
 
         self.monitor = get_monitors()
         '''Defines monitor object that allows automatic screen window sizing per screen size'''
@@ -69,7 +45,6 @@ class mainProgram(QMainWindow):
         self.tableHeaders = ['Item No.']
         '''Defines headers for the main table \n'''
         
-
         self.dock = QDockWidget('Menu')
         '''Defines right-side dock'''
         self.dockMenu = QWidget()
@@ -91,9 +66,7 @@ class mainProgram(QMainWindow):
 
 
         self.currentlySelectedCell = [0,0]
-
         self.uniqueItemNumbers = []
-        
         self.masterMatList = masterMaterialList
         '''Defines a dictionary of form {"|Item No.|":"|Description|"}'''
 
@@ -187,10 +160,9 @@ class mainProgram(QMainWindow):
                     #cell = customTableWidgetItem(data[panel][item]['count'])
                     if data[panel][item]['count'] != '1 Lot':
                         count = int(data[panel][item]['count'])
+                    else:
+                        count = '1 Lot'
                     cell = advancedCustomTableWidgetItem(self.signals, count=count,deviceNames=data[panel][item]['names'])
-                    #cell.cellDeviceNames = data[panel][item]['names']
-                    #cell.currentTextChanged.connect(self.buildRightDock)
-                    cell.countSelect.valueChanged.connect(self.resizeCell)
                     self.tableWidget.setCellWidget(itemIndex,panelIndex,cell)
                 
                 if panel == 'Item No.':
@@ -200,8 +172,7 @@ class mainProgram(QMainWindow):
 
         self.tableWidget.itemChanged.connect(self.tableItemChanged)
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
-        self.tableWidget.resizeColumnsToContents()
-        self.tableWidget.resizeRowsToContents()
+        self.resizeCell()
 
         self.setCentralWidget(self.tableWidget)
 
@@ -306,7 +277,10 @@ class mainProgram(QMainWindow):
                 row = self.uniqueItemNumbers.index(item)
                 column = self.tableHeaders.index(panel)
                 self.outputDictionary[panel][item] = {}
-                self.outputDictionary[panel][item]['count'] = self.tableWidget.cellWidget(row,column).countSelect.value()
+                if self.tableWidget.cellWidget(row,column).oneLotCheckBox.isChecked():
+                    self.outputDictionary[panel][item]['count'] = '1 Lot'
+                else:
+                    self.outputDictionary[panel][item]['count'] = self.tableWidget.cellWidget(row,column).countSelect.value()
                 self.outputDictionary[panel][item]['names'] = [i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames]
                 self.outputDictionary[panel][item]['description'] = ''
                     
@@ -364,7 +338,13 @@ class advancedCustomTableWidgetItem(QWidget):
         #self.widget = QWidget()
         self.oneLotSelected = False
 
-        self.countSelect.setValue(count)
+        if count != '1 Lot':
+            self.countSelect.setValue(count)
+        else:
+            self.countSelect.setValue(0)
+            self.oneLotCheckBox.setChecked(True)
+            self.countSelect.setDisabled(True)
+            self.showDevicesCheckBox.setDisabled(True)
         self.deviceNames = [QLineEdit() for i in deviceNames]
         for i in range(len(deviceNames)):
             self.deviceNames[i].setText(deviceNames[i])
@@ -391,13 +371,12 @@ class advancedCustomTableWidgetItem(QWidget):
         self.updateDeviceNameSlots()
 
     def updateDeviceNameSlots(self):
-
         if self.showDevicesCheckBox.isChecked():
             while self.countSelect.value() != len(self.deviceNames):
                 if self.countSelect.value() > len(self.deviceNames):
                     self.addDeviceNameSlot()
                 if self.countSelect.value() < len(self.deviceNames):
-                    self.removeDeviceNameSlot()
+                    self.removeDeviceNameSlot()    
         else:
             while len(self.deviceNames) > 0:
                 self.removeDeviceNameSlot()
@@ -405,7 +384,10 @@ class advancedCustomTableWidgetItem(QWidget):
         self.signals.signal1.emit()
 
     def toggleDevices(self):
+        if self.showDevicesCheckBox.isChecked():
+            self.countSelect.setValue(0)
         self.updateDeviceNameSlots()
+
 
     def addDeviceNameSlot(self):
         self.deviceNames.append(QLineEdit())
@@ -433,9 +415,32 @@ class advancedCustomTableWidgetItem(QWidget):
             self.countSelect.setDisabled(False)
             self.showDevicesCheckBox.setDisabled(False)
 
+class startupMessage(QWidget):
+    def __init__(self):
+        self.newFile = False
+        self.newFileDialog = QDialog()
+        self.newFileDialog.setWindowTitle('New Material List?')
+        self.newFileDialog.setMinimumSize(400,50)
+        self.newFileDialogLayout = QGridLayout()
+        self.newFileDialogMessage = QLabel("Create New Material List?")
+        self.newFileRadioButtonYes = QRadioButton()
+        self.newFileRadioButtonYes.setText('New Material List')
+        self.newFileRadioButtonNo = QRadioButton()
+        self.newFileRadioButtonNo.setText('Select Existing Material List')
+        self.newFileDialogAccept = QPushButton('Enter')
+        self.newFileDialogAccept.clicked.connect(self.newFileDialog.close)
+        self.newFileDialogLayout.addWidget(self.newFileDialogMessage,0,0)
+        self.newFileDialogLayout.addWidget(self.newFileRadioButtonYes,1,0)
+        self.newFileDialogLayout.addWidget(self.newFileRadioButtonNo,1,1)
+        self.newFileDialogLayout.addWidget(self.newFileDialogAccept)
+        self.newFileDialog.setLayout(self.newFileDialogLayout)
+        
+
+        self.newFileDialog.exec()
+        self.newFile = self.newFileRadioButtonYes.isChecked()
+
 class signalClass(QWidget):
     signal1 = QtCore.pyqtSignal()  
-
 
 #--------------------------------------------------------PDF SECTION----------------------------------------------------------------
 class NumberedPageCanvas(Canvas):
