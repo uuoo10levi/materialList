@@ -256,6 +256,7 @@ class mainProgram(QMainWindow):
                 cell = advancedCustomTableWidgetItem(self.signals)
                 #cell.currentTextChanged.connect(self.buildRightDock)
                 self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1,panelIndex+1,cell)
+            self.uniqueItemNumbers.append(self.dockItemSelect.currentText())
 
     def printDataToConsole(self):
         self.developOutputDictionary()
@@ -314,7 +315,7 @@ class mainProgram(QMainWindow):
                 if column == 0:
                     grid[row][column] = self.tableWidget.item(row,column).text()
 
-        self.pdf = pdf(grid=grid,headings = headings,name=self.pdfFileName)
+        self.pdf = pdf(masterMatList = self.masterMatList,grid=grid,headings = headings,name=self.pdfFileName)
         self.pdf.exportPDF()
 
     def mainProgramLoop(self):
@@ -326,6 +327,7 @@ class mainProgram(QMainWindow):
         pass
 
     def deleteItem(self):
+        self.uniqueItemNumbers.remove(self.tableWidget.item(self.currentlySelectedCell[0],0).text())
         self.tableWidget.removeRow(self.currentlySelectedCell[0])
 
 class advancedCustomTableWidgetItem(QWidget):
@@ -480,7 +482,7 @@ class NumberedPageCanvas(Canvas):
         self.drawString(0.25 * inch, 0.25 * inch, 'Rev. 0')
 
 class pdf:
-    def __init__(self, grid=[], headings=[], name = '_.pdf', pageWidth = 8.5, pageHeight = 11):
+    def __init__(self, masterMatList = {}, grid=[], headings=[], name = '_.pdf', pageWidth = 8.5, pageHeight = 11):
         #print(grid)
         self.styleSheet = getSampleStyleSheet()
         self.pagesize = (pageHeight * inch, pageWidth * inch)
@@ -516,6 +518,10 @@ class pdf:
                     tableData[rowIndex+3][columnIndex+2] = tempCell
                 if columnIndex == 0:
                     tableData[rowIndex+3][columnIndex] = cell
+        #Descriptions
+        for rowIndex, row in enumerate(tableData):
+            if rowIndex > 2:
+                tableData[rowIndex][1] = masterMatList[row[0]]
         
         #Total column
         for rowIndex, row in enumerate(grid):
