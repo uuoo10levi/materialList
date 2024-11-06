@@ -358,6 +358,7 @@ class advancedCustomTableWidgetItem(QWidget):
 
         self.layout1 = QGridLayout()
         self.countSelect = QSpinBox()
+        self.countSelect.setMaximum(999)
         self.oneLotCheckBox = QCheckBox()
         self.showDevicesCheckBox = QCheckBox()
         #self.widget = QWidget()
@@ -375,7 +376,8 @@ class advancedCustomTableWidgetItem(QWidget):
         self.oneLotCheckBox.clicked.connect(self.oneLot)
         self.oneLotCheckBox.setText('1 LOT')
         self.showDevicesCheckBox.setText('Show Device Names')
-        self.showDevicesCheckBox.setChecked(True)
+        if len(self.deviceNames) != 0:
+            self.showDevicesCheckBox.setChecked(True)
         self.showDevicesCheckBox.stateChanged.connect(self.toggleDevices)
 
         self.layout1 = QGridLayout()
