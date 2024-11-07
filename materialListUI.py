@@ -123,7 +123,7 @@ class mainProgram(QMainWindow):
         self.columnHeaders.append(self.newPanelName.text())
         self.tableWidget.insertColumn(self.tableWidget.columnCount())
         for row in range(self.tableWidget.rowCount()):
-            cell = advancedCustomTableWidgetItem(self.signals)
+            cell = advancedCustomTableWidgetItem(self.signals,row,self.tableWidget.columnCount()-1)
             self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
         self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
         self.saveJSONFile()
@@ -174,21 +174,21 @@ class mainProgram(QMainWindow):
         
         for panelIndex, panel in enumerate(self.columnHeaders):
             for itemIndex, item in enumerate(self.uniqueItemNumbers):
-                if panel != 'Item No.':
+                if panel != 'Item Options':
                     #cell = customTableWidgetItem(data[panel][item]['count'])
                     if data[panel][item]['count'] != '1 Lot':
                         count = int(data[panel][item]['count'])
                     else:
                         count = '1 Lot'
-                    cell = advancedCustomTableWidgetItem(self.signals, count=count,deviceNames=data[panel][item]['names'])
+                    cell = advancedCustomTableWidgetItem(self.signals, count=count,deviceNames=data[panel][item]['names'],coordinates=(itemIndex,panelIndex))
                     self.tableWidget.setCellWidget(itemIndex,panelIndex,cell)
                 
-                if panel == 'Item No.':
-                    itemNumberCell = QTableWidgetItem(item)
-                    itemNumberCell.setTextAlignment(QtCore.Qt.AlignCenter)
+                if panel == 'Item Options':
+                    itemNumberCell = firstColumnWidget(self.signals,itemNo=item,coordinates=(itemIndex,panelIndex))
+                    #itemNumberCell.setTextAlignment(QtCore.Qt.AlignCenter)
                     #itemNumberCell.setFont(self.itemNoFont)
-                    itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
-                    self.tableWidget.setItem(itemIndex,panelIndex,itemNumberCell)
+                    #itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
+                    self.tableWidget.setCellWidget(itemIndex,panelIndex,itemNumberCell)
 
         self.tableWidget.itemChanged.connect(self.tableItemChanged)
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
@@ -201,7 +201,8 @@ class mainProgram(QMainWindow):
         self.addItemButton.setText('Add Item: '+self.dockItemSelect.currentText())
     
     def updateDeleteRowButton(self):
-        self.deleteRow.setText('Delete Item: '+self.tableWidget.item(self.currentlySelectedCell[0],0).text())
+        if self.tableWidget.rowCount()>0:
+            self.deleteRow.setText('Delete Item: '+self.tableWidget.cellWidget(self.currentlySelectedCell[0],0).text)
 
     def updateDeletePanelButton(self):
         self.deletePanelButton.setText('Delete Panel: '+self.columnHeaders[self.currentlySelectedCell[1]])
@@ -215,7 +216,7 @@ class mainProgram(QMainWindow):
 
         self.addItemButton = QPushButton('Add Item: 0',clicked=self.addItem)
         self.printButton = QPushButton('Save',clicked=self.export)
-        self.deleteRow = QPushButton(f'Delete Item: {self.tableWidget.item(0,0).text()}',clicked=self.deleteItem)
+        self.deleteRow = QPushButton(f'Delete Item: ',clicked=self.deleteItem)
         self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
         self.newPanelName = QLineEdit()
@@ -258,17 +259,17 @@ class mainProgram(QMainWindow):
         pass
 
     def addItem(self):
-        if self.dockItemSelect.currentText() not in [self.tableWidget.item(i,0).text() for i in range(self.tableWidget.rowCount())]:
+        if self.dockItemSelect.currentText() not in [self.tableWidget.cellWidget(i,0).text for i in range(self.tableWidget.rowCount())]:
             self.tableWidget.insertRow(self.tableWidget.rowCount())
-            itemNumberCell = QTableWidgetItem(self.dockItemSelect.currentText())
-            itemNumberCell.setTextAlignment(QtCore.Qt.AlignCenter)
-            itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
-            self.tableWidget.setItem(self.tableWidget.rowCount()-1,0,itemNumberCell)
+            itemNumberCell = firstColumnWidget(signalClass=self.signals,itemNo=self.dockItemSelect.currentText(),coordinates=(self.tableWidget.rowCount()-1,0))
+            #itemNumberCell.setTextAlignment(QtCore.Qt.AlignCenter)
+            #itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
+            self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1,0,itemNumberCell)
             #for panelIndex, perPanelCount in enumerate(self.dockItemPanels):
             #print(len(self.dockItemPanels),self.tableWidget.columnCount())
             for panelIndex in range(self.tableWidget.columnCount()-1):
                 #cell = customTableWidgetItem(perPanelCount.text())
-                cell = advancedCustomTableWidgetItem(self.signals)
+                cell = advancedCustomTableWidgetItem(self.signals , coordinates=(self.tableWidget.rowCount()-1,panelIndex+1))
                 #cell.currentTextChanged.connect(self.buildRightDock)
                 self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1,panelIndex+1,cell)
             self.uniqueItemNumbers.append(self.dockItemSelect.currentText())
@@ -291,7 +292,7 @@ class mainProgram(QMainWindow):
     def developOutputDictionary(self):
         self.outputDictionary = {}
         for header in self.columnHeaders:
-            if header != 'Item No.':
+            if header != 'Item Options':
                 self.outputDictionary[header] = {}
         for panel in self.outputDictionary:
             self.outputDictionary[panel]['description'] = ''
@@ -334,7 +335,7 @@ class mainProgram(QMainWindow):
                     else:
                         grid[row][column] = '1 Lot'
                 if column == 0:
-                    grid[row][column] = self.tableWidget.item(row,column).text()
+                    grid[row][column] = self.tableWidget.cellWidget(row,column).text
 
         self.pdf = pdf(masterMatList = self.masterMatList,grid=grid,headings = headings,name=self.pdfFileName)
         self.pdf.exportPDF()
@@ -349,18 +350,23 @@ class mainProgram(QMainWindow):
 
     def deleteItem(self):
         if len(self.uniqueItemNumbers) > 0:
-            self.uniqueItemNumbers.remove(self.tableWidget.item(self.currentlySelectedCell[0],0).text())
+            self.uniqueItemNumbers.remove(self.tableWidget.cellWidget(self.currentlySelectedCell[0],0).text)
             self.tableWidget.removeRow(self.currentlySelectedCell[0])
         if len(self.uniqueItemNumbers) > 0:
-            self.deleteRow.setText(f'Delete Item: {self.tableWidget.item(self.currentlySelectedCell[0],0).text()}')
+            self.deleteRow.setText(f'Delete Item: {self.tableWidget.cellWidget(self.currentlySelectedCell[0],0).text}')
         else:
             self.deleteRow.setText(f'')
 
 
 class advancedCustomTableWidgetItem(QWidget):
-    def __init__(self,signalClass, count=0,deviceNames=[]):
+    def __init__(self,signalClass, count=0,deviceNames=[], coordinates=()):
         super(advancedCustomTableWidgetItem,self).__init__()
         self.signals=signalClass
+        self.signals.enableDeviceNames.connect(self.enableDeviceNames)
+        self.signals.disableDeviceNames.connect(self.disableDeviceNames)
+        self.signals.enableOneLot.connect(self.enableOneLot)
+        self.signals.disableOneLot.connect(self.disableOneLot)
+        self.coordinates = coordinates
 
         self.layout1 = QGridLayout()
         self.countSelect = QSpinBox()
@@ -401,6 +407,31 @@ class advancedCustomTableWidgetItem(QWidget):
 
         self.updateDeviceNameSlots()
 
+    def disableDeviceNames(self,coordinates):
+        #print(coordinates)
+        if coordinates == self.coordinates[0]:
+            self.showDevicesCheckBox.setChecked(False)
+            self.showDevicesCheckBox.setDisabled(True)
+        
+    def disableOneLot(self,coordinates):
+        #print(coordinates)
+        if coordinates == self.coordinates[0]:
+            self.oneLotCheckBox.setChecked(False)
+            self.oneLotCheckBox.setDisabled(True)
+        
+    def enableDeviceNames(self,coordinates):
+        #print(coordinates)
+        if coordinates == self.coordinates[0]:
+            self.showDevicesCheckBox.setChecked(True)
+            self.showDevicesCheckBox.setDisabled(True)
+        
+    def enableOneLot(self,coordinates):
+        #print(coordinates)
+        if coordinates == self.coordinates[0]:
+            self.oneLotCheckBox.setChecked(True)
+            self.oneLotCheckBox.setDisabled(True)
+        
+
     def updateDeviceNameSlots(self):
         if self.showDevicesCheckBox.isChecked():
             while self.countSelect.value() != len(self.deviceNames):
@@ -419,7 +450,6 @@ class advancedCustomTableWidgetItem(QWidget):
             self.countSelect.setValue(0)
         self.updateDeviceNameSlots()
 
-
     def addDeviceNameSlot(self):
         self.deviceNames.append(QLineEdit())
         self.layout1.addWidget(self.deviceNames[-1],len(self.deviceNames)+2,0,1,2)
@@ -431,7 +461,6 @@ class advancedCustomTableWidgetItem(QWidget):
         self.layout1.removeWidget(self.deviceNames[-1])
         self.deviceNames.pop()
         
-
     def oneLot(self):
         self.oneLotSelected = self.oneLotCheckBox.isChecked()
         if self.oneLotSelected:
@@ -445,6 +474,38 @@ class advancedCustomTableWidgetItem(QWidget):
         else:
             self.countSelect.setDisabled(False)
             self.showDevicesCheckBox.setDisabled(False)
+
+class firstColumnWidget(QWidget):
+    def __init__(self,signalClass, deviceNames = False, oneLot = False, itemNo = '', coordinates = (0,0)):
+        super(firstColumnWidget,self).__init__()
+        self.signals = signalClass
+        self.deviceNames = QCheckBox()
+        self.oneLot = QCheckBox()
+        self.deviceNames.setChecked(deviceNames)
+        self.oneLot.setChecked(oneLot)
+        self.deviceNames.setText('Show Device Names')
+        self.oneLot.setText('1 Lot')
+        self.deviceNames.clicked.connect(self.enableDeviceNames)
+        self.oneLot.clicked.connect(self.enableOneLot)
+        self.layout1 = QFormLayout()
+        self.layout1.addRow(self.deviceNames)
+        self.layout1.addRow(self.oneLot)
+        self.setLayout(self.layout1)
+        self.text = itemNo
+        self.coordinates = coordinates
+
+    def enableDeviceNames(self):
+        if self.deviceNames.isChecked():
+            signals.enableDeviceNames.emit(self.coordinates[0])
+        else:
+            signals.disableDeviceNames.emit(self.coordinates[0])
+
+    def enableOneLot(self):
+        if self.oneLot.isChecked():
+            signals.enableOneLot.emit(self.coordinates[0])
+        else:
+            signals.disableOneLot.emit(self.coordinates[0])
+        
 
 class startupMessage(QWidget):
     def __init__(self):
@@ -472,6 +533,10 @@ class startupMessage(QWidget):
 
 class signalClass(QWidget):
     signal1 = QtCore.pyqtSignal()  
+    enableDeviceNames = QtCore.pyqtSignal(int)
+    enableOneLot = QtCore.pyqtSignal(int)
+    disableDeviceNames = QtCore.pyqtSignal(int)
+    disableOneLot = QtCore.pyqtSignal(int)
 
 #--------------------------------------------------------PDF SECTION----------------------------------------------------------------
 class NumberedPageCanvas(Canvas):
