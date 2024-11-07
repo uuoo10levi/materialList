@@ -123,7 +123,7 @@ class mainProgram(QMainWindow):
         self.columnHeaders.append(self.newPanelName.text())
         self.tableWidget.insertColumn(self.tableWidget.columnCount())
         for row in range(self.tableWidget.rowCount()):
-            cell = advancedCustomTableWidgetItem(self.signals,row,self.tableWidget.columnCount()-1)
+            cell = advancedCustomTableWidgetItem(self.signals,coordinates=(row,self.tableWidget.columnCount()-1))
             self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
         self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
         self.saveJSONFile()
@@ -300,7 +300,7 @@ class mainProgram(QMainWindow):
                 row = self.uniqueItemNumbers.index(item)
                 column = self.columnHeaders.index(panel)
                 self.outputDictionary[panel][item] = {}
-                if self.tableWidget.cellWidget(row,column).oneLotCheckBox.isChecked():
+                if self.tableWidget.cellWidget(row,column).oneLotSelected:
                     self.outputDictionary[panel][item]['count'] = '1 Lot'
                 else:
                     self.outputDictionary[panel][item]['count'] = self.tableWidget.cellWidget(row,column).countSelect.value()
@@ -330,7 +330,7 @@ class mainProgram(QMainWindow):
         for row in range(self.tableWidget.rowCount()):
             for column in range(self.tableWidget.columnCount()):
                 if column != 0:
-                    if not self.tableWidget.cellWidget(row,column).oneLotCheckBox.isChecked():
+                    if not self.tableWidget.cellWidget(row,column).oneLotSelected:
                         grid[row][column] = [self.tableWidget.cellWidget(row,column).countSelect.value(),[i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames]]
                     else:
                         grid[row][column] = '1 Lot'
@@ -367,40 +367,39 @@ class advancedCustomTableWidgetItem(QWidget):
         self.signals.enableOneLot.connect(self.enableOneLot)
         self.signals.disableOneLot.connect(self.disableOneLot)
         self.coordinates = coordinates
-
         self.layout1 = QGridLayout()
         self.countSelect = QSpinBox()
         self.countSelect.setMaximum(999)
-        self.oneLotCheckBox = QCheckBox()
-        self.showDevicesCheckBox = QCheckBox()
         self.oneLotSelected = False
+        self.showDevices = False
+
+        self.deviceNames = [QLineEdit() for i in deviceNames]
+        if len(self.deviceNames)>0:
+            self.signals.checkDeviceNames.emit(coordinates[0])
+        for i in range(len(deviceNames)):
+            self.deviceNames[i].setText(deviceNames[i])
+
+
+
 
         if count != '1 Lot':
             self.countSelect.setValue(count)
         else:
             self.countSelect.setValue(0)
-            self.oneLotCheckBox.setChecked(True)
             self.countSelect.setDisabled(True)
-            self.showDevicesCheckBox.setDisabled(True)
-        self.deviceNames = [QLineEdit() for i in deviceNames]
-        for i in range(len(deviceNames)):
-            self.deviceNames[i].setText(deviceNames[i])
+            self.oneLotSelected = True
+            self.signals.checkOneLot.emit(coordinates[0])
+
         
-        for index in range(len(self.deviceNames)):
-            self.deviceNames[index].setText(deviceNames[index])
 
         self.countSelect.valueChanged.connect(self.updateDeviceNameSlots)
-        self.oneLotCheckBox.clicked.connect(self.oneLot)
-        self.oneLotCheckBox.setText('1 LOT')
-        self.showDevicesCheckBox.setText('Show Device Names')
+
+
         if len(self.deviceNames) != 0:
-            self.showDevicesCheckBox.setChecked(True)
-        self.showDevicesCheckBox.stateChanged.connect(self.toggleDevices)
+            self.showDevices = True
 
         self.layout1 = QGridLayout()
         self.layout1.addWidget(self.countSelect,0,0)
-        self.layout1.addWidget(self.oneLotCheckBox,0,1)
-        self.layout1.addWidget(self.showDevicesCheckBox,1,1)
         for i in range(len(self.deviceNames)):
             self.layout1.addWidget(self.deviceNames[i],i+2,0,1,2)
         self.setLayout(self.layout1)
@@ -410,30 +409,28 @@ class advancedCustomTableWidgetItem(QWidget):
     def disableDeviceNames(self,coordinates):
         #print(coordinates)
         if coordinates == self.coordinates[0]:
-            self.showDevicesCheckBox.setChecked(False)
-            self.showDevicesCheckBox.setDisabled(True)
+            self.showDevices = False
         
     def disableOneLot(self,coordinates):
         #print(coordinates)
         if coordinates == self.coordinates[0]:
-            self.oneLotCheckBox.setChecked(False)
-            self.oneLotCheckBox.setDisabled(True)
+            self.oneLotSelected = False
+        self.oneLot()
         
     def enableDeviceNames(self,coordinates):
         #print(coordinates)
         if coordinates == self.coordinates[0]:
-            self.showDevicesCheckBox.setChecked(True)
-            self.showDevicesCheckBox.setDisabled(True)
+            self.showDevices = True
         
     def enableOneLot(self,coordinates):
         #print(coordinates)
         if coordinates == self.coordinates[0]:
-            self.oneLotCheckBox.setChecked(True)
-            self.oneLotCheckBox.setDisabled(True)
+            self.oneLotSelected = True
+        self.oneLot()
         
 
     def updateDeviceNameSlots(self):
-        if self.showDevicesCheckBox.isChecked():
+        if self.showDevices == True:
             while self.countSelect.value() != len(self.deviceNames):
                 if self.countSelect.value() > len(self.deviceNames):
                     self.addDeviceNameSlot()
@@ -446,7 +443,7 @@ class advancedCustomTableWidgetItem(QWidget):
         self.signals.signal1.emit()
 
     def toggleDevices(self):
-        if self.showDevicesCheckBox.isChecked():
+        if self.showDevices == True:
             self.countSelect.setValue(0)
         self.updateDeviceNameSlots()
 
@@ -462,18 +459,14 @@ class advancedCustomTableWidgetItem(QWidget):
         self.deviceNames.pop()
         
     def oneLot(self):
-        self.oneLotSelected = self.oneLotCheckBox.isChecked()
         if self.oneLotSelected:
             self.countSelect.setDisabled(True)
-            self.showDevicesCheckBox.setChecked(False)
-            self.showDevicesCheckBox.setDisabled(True)
             for i in reversed(range(len(self.deviceNames))):
                 self.layout1.removeWidget(self.deviceNames[i])
             self.countSelect.setValue(0)
             self.updateDeviceNameSlots()
         else:
             self.countSelect.setDisabled(False)
-            self.showDevicesCheckBox.setDisabled(False)
 
 class firstColumnWidget(QWidget):
     def __init__(self,signalClass, deviceNames = False, oneLot = False, itemNo = '', coordinates = (0,0)):
@@ -493,18 +486,32 @@ class firstColumnWidget(QWidget):
         self.setLayout(self.layout1)
         self.text = itemNo
         self.coordinates = coordinates
+        self.signals.checkOneLot.connect(self.checkOneLot)
+        self.signals.checkDeviceNames.connect(self.checkDeviceNames)
 
     def enableDeviceNames(self):
         if self.deviceNames.isChecked():
-            signals.enableDeviceNames.emit(self.coordinates[0])
+            self.signals.enableDeviceNames.emit(self.coordinates[0])
         else:
-            signals.disableDeviceNames.emit(self.coordinates[0])
+            self.signals.disableDeviceNames.emit(self.coordinates[0])
 
     def enableOneLot(self):
         if self.oneLot.isChecked():
-            signals.enableOneLot.emit(self.coordinates[0])
+            self.signals.enableOneLot.emit(self.coordinates[0])
+            self.deviceNames.setDisabled(True)
+            self.deviceNames.setChecked(False)
         else:
-            signals.disableOneLot.emit(self.coordinates[0])
+            self.signals.disableOneLot.emit(self.coordinates[0])
+            self.deviceNames.setDisabled(False)
+
+    def checkOneLot(self,value):
+        if value == self.coordinates[0]:
+            self.oneLot.setChecked(True)
+        self.enableOneLot()
+
+    def checkDeviceNames(self,value):
+        if value == self.coordinates[0]:
+            self.deviceNames.setChecked(True)
         
 
 class startupMessage(QWidget):
@@ -537,6 +544,8 @@ class signalClass(QWidget):
     enableOneLot = QtCore.pyqtSignal(int)
     disableDeviceNames = QtCore.pyqtSignal(int)
     disableOneLot = QtCore.pyqtSignal(int)
+    checkDeviceNames = QtCore.pyqtSignal(bool)
+    checkOneLot = QtCore.pyqtSignal(int)
 
 #--------------------------------------------------------PDF SECTION----------------------------------------------------------------
 class NumberedPageCanvas(Canvas):
