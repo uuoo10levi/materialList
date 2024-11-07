@@ -1,7 +1,7 @@
 #NOT RELEASED FOR USE
 import sys
 from screeninfo import get_monitors
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QMessageBox, QFileDialog, QRadioButton, QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QSpacerItem
 import json
 from reportlab.lib import colors
@@ -9,6 +9,11 @@ from reportlab.lib.pagesizes import letter, landscape, inch
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Table
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfgen.canvas import Canvas
+import re
+
+
+def naturalSortKey(s):
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(re.compile('([0-9]+)'), s)]
 
 
 class mainProgram(QMainWindow):
@@ -16,6 +21,8 @@ class mainProgram(QMainWindow):
         super(mainProgram, self).__init__()
         self.signals = signalClass
         self.signals.signal1.connect(self.resizeCell)
+        self.itemNoFont = QtGui.QFont()
+        self.itemNoFont.setBold(True)
 
         self.startupMessage = startupMessage()
         self.newFile = self.startupMessage.newFile
@@ -42,7 +49,7 @@ class mainProgram(QMainWindow):
         '''Defines Main Scrollable Table'''
         self.tableWidgetItems = [[]] 
         '''Defines objects to be slotted into main table cells'''
-        self.tableHeaders = ['Item No.']
+        self.columnHeaders = ['Item No.']
         '''Defines headers for the main table \n'''
         
         self.dock = QDockWidget('Menu')
@@ -110,24 +117,15 @@ class mainProgram(QMainWindow):
         self.setGeometry(QtCore.QRect(self.xShift,self.yShift,self.xSize,self.ySize))
         self.setWindowTitle('Add Material to Contract')
 
-    def addPanel(self):
-        #panel, done = QInputDialog.getText(self, 'New Panel', 'Enter Name for New Panel:')
-        
-        self.tableHeaders.append(self.newPanelName.text())
+    def addPanel(self):        
+        self.columnHeaders.append(self.newPanelName.text())
         self.tableWidget.insertColumn(self.tableWidget.columnCount())
         for row in range(self.tableWidget.rowCount()):
             cell = advancedCustomTableWidgetItem(self.signals)
-            #cell.cellDeviceNames = []
-            #cell.currentTextChanged.connect(self.buildRightDock)
             self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
-        message = QDialog()
-        layout = QFormLayout()
-        messageText = QLabel()
-        messageText.setText('Panel Name will Display Properly on Program Reboot')
-        layout.addWidget(messageText)
-        message.setLayout(layout)
-        message.exec()
+        self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
         self.saveJSONFile()
+        self.newPanelName.setText('')
 
     def buildNewMatlist(self):
         self.matListFileName = 'newFile.json'
@@ -136,7 +134,7 @@ class mainProgram(QMainWindow):
         #if type(input) == type(dict()):
         data = {"Panel":{"item":{"count":'0',"names":[],"description":""}}}
         for i in list(data.keys()):
-            self.tableHeaders.append(i)
+            self.columnHeaders.append(i)
 
         return data
     
@@ -147,7 +145,7 @@ class mainProgram(QMainWindow):
         with open(input) as jsonFile:
             data = json.load(jsonFile)
             for i in list(data.keys()):
-                self.tableHeaders.append(i)
+                self.columnHeaders.append(i)
         return data   
 
     def getUniqueItemNumbers(self,data):
@@ -155,20 +153,22 @@ class mainProgram(QMainWindow):
             for item in data[panel]:
                 if item != 'description' and item not in self.uniqueItemNumbers:
                     self.uniqueItemNumbers.append(item)
-        self.uniqueItemNumbers.sort()
+        
+        self.uniqueItemNumbers.sort(key=naturalSortKey)
 
     def buildInitialTable(self, data):
         '''Dimensions[0] = rows, Dimensions[1] = columns'''
-        dimensions = [len(self.uniqueItemNumbers),len(self.tableHeaders)]
+        dimensions = [len(self.uniqueItemNumbers),len(self.columnHeaders)]
         self.tableWidget.setColumnCount(dimensions[1])
         for i in range(dimensions[1]):
             self.tableWidget.setColumnWidth(i,200)
         self.tableWidget.setRowCount(dimensions[0])
-        self.tableWidget.setHorizontalHeaderLabels(self.tableHeaders)
+        self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
+        self.tableWidget.setVerticalHeaderLabels(self.uniqueItemNumbers)
         self.tableWidget.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
         self.tableWidget.setTabKeyNavigation(False)
         
-        for panelIndex, panel in enumerate(self.tableHeaders):
+        for panelIndex, panel in enumerate(self.columnHeaders):
             for itemIndex, item in enumerate(self.uniqueItemNumbers):
                 if panel != 'Item No.':
                     #cell = customTableWidgetItem(data[panel][item]['count'])
@@ -181,12 +181,15 @@ class mainProgram(QMainWindow):
                 
                 if panel == 'Item No.':
                     itemNumberCell = QTableWidgetItem(item)
+                    itemNumberCell.setTextAlignment(QtCore.Qt.AlignCenter)
+                    #itemNumberCell.setFont(self.itemNoFont)
                     itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
                     self.tableWidget.setItem(itemIndex,panelIndex,itemNumberCell)
 
         self.tableWidget.itemChanged.connect(self.tableItemChanged)
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
         self.resizeCell()
+
 
         self.setCentralWidget(self.tableWidget)
 
@@ -197,7 +200,7 @@ class mainProgram(QMainWindow):
         self.deleteRow.setText('Delete Item: '+self.tableWidget.item(self.currentlySelectedCell[0],0).text())
 
     def updateDeletePanelButton(self):
-        self.deletePanelButton.setText('Delete Panel: '+self.tableHeaders[self.currentlySelectedCell[1]])
+        self.deletePanelButton.setText('Delete Panel: '+self.columnHeaders[self.currentlySelectedCell[1]])
 
     def buildRightDock(self):
         self.removeDockWidget(self.dock)
@@ -206,69 +209,36 @@ class mainProgram(QMainWindow):
         for item in self.masterMatList.keys():
             self.dockItemSelect.addItem(item)
 
-        # self.dockItemPanels = []
-        # for panel in self.tableHeaders[1:]:
-        #     dockItemCountEntry = QLineEdit()
-        #     dockItemCountEntry.setPlaceholderText(panel)
-        #     self.dockItemPanels.append(dockItemCountEntry)
-
         self.addItemButton = QPushButton('Add Item: 0',clicked=self.addItem)
-        self.printButton = QPushButton('Save',clicked=self.printDataToConsole)
+        self.printButton = QPushButton('Save',clicked=self.export)
         self.deleteRow = QPushButton(f'Delete Row: {self.currentlySelectedCell[0]+1}',clicked=self.deleteItem)
         self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
         self.newPanelName = QLineEdit()
         self.newPanelName.setPlaceholderText('Panel Name')
         self.fileName = QLineEdit()
-        self.fileName.setPlaceholderText('File Name')
-
-        #self.deviceNameSlots = 0
-        #if self.currentlySelectedCell[1] >= 1 and self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText() != '1 Lot':
-        #   self.deviceNameSlots = int(self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText())
-        #if self.deviceNameSlots > 15:
-        #    self.deviceNameSlots = 15
-            
-        
-        #self.deviceNames = [QLineEdit() for i in range(self.deviceNameSlots)]
-        #for i in range(len(self.deviceNames)):
-        #    self.deviceNames[i].editingFinished.connect(self.updateDeviceNames)
-
-
-        #for i in range(len(self.deviceNames)):
-        #    self.deviceNames[i].setPlaceholderText(f'Device {i+1} Name:')
-        #    try:
-        #        self.deviceNames[i].setText(self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).cellDeviceNames[i])
-        #    except:
-        #        pass
-
+        self.fileName.setPlaceholderText('Project Name')
 
         self.dockLayout = QFormLayout()
         self.dockLayout.addRow(self.dockItemSelect)
-        # for i in self.dockItemPanels:
-        #     self.dockLayout.addRow(i)
         self.dockLayout.addRow(self.addItemButton)
         self.dockLayout.addRow(self.deleteRow)
         self.dockLayout.addItem(QSpacerItem(50,50))
-        #for i in self.deviceNames:
-        #    self.dockLayout.addRow(i)
         self.dockLayout.addRow(self.newPanelName)
         self.dockLayout.addRow(self.addPanelButton)
         self.dockLayout.addRow(self.deletePanelButton)
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.fileName)
         self.dockLayout.addRow(self.printButton)
-
-
+        
         self.dockMenu = QWidget()
         self.dockMenu.setLayout(self.dockLayout)
-
-
         self.dock = QDockWidget('Menu')
         self.dock.setWidget(self.dockMenu)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dock) 
 
     def deletePanel(self):
-        self.tableHeaders.remove(self.tableHeaders[self.currentlySelectedCell[1]])
+        self.columnHeaders.remove(self.columnHeaders[self.currentlySelectedCell[1]])
         self.tableWidget.removeColumn(self.currentlySelectedCell[1])
 
     def tableItemSelectionChanged(self):
@@ -284,6 +254,7 @@ class mainProgram(QMainWindow):
         if self.dockItemSelect.currentText() not in [self.tableWidget.item(i,0).text() for i in range(self.tableWidget.rowCount())]:
             self.tableWidget.insertRow(self.tableWidget.rowCount())
             itemNumberCell = QTableWidgetItem(self.dockItemSelect.currentText())
+            itemNumberCell.setTextAlignment(QtCore.Qt.AlignCenter)
             itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
             self.tableWidget.setItem(self.tableWidget.rowCount()-1,0,itemNumberCell)
             #for panelIndex, perPanelCount in enumerate(self.dockItemPanels):
@@ -294,13 +265,14 @@ class mainProgram(QMainWindow):
                 #cell.currentTextChanged.connect(self.buildRightDock)
                 self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1,panelIndex+1,cell)
             self.uniqueItemNumbers.append(self.dockItemSelect.currentText())
+        self.tableWidget.setVerticalHeaderLabels(self.uniqueItemNumbers)
         self.resizeCell()
 
-    def printDataToConsole(self):
+    def export(self):
         if self.fileName.text():
             self.matListFileName = self.fileName.text()+'.json'
         self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
-        print(self.matListFileName)
+        #print(self.matListFileName)
         self.developOutputDictionary()
         self.saveJSONFile()
         self.makePDF()
@@ -311,14 +283,14 @@ class mainProgram(QMainWindow):
 
     def developOutputDictionary(self):
         self.outputDictionary = {}
-        for header in self.tableHeaders:
+        for header in self.columnHeaders:
             if header != 'Item No.':
                 self.outputDictionary[header] = {}
         for panel in self.outputDictionary:
             self.outputDictionary[panel]['description'] = ''
             for item in self.uniqueItemNumbers:
                 row = self.uniqueItemNumbers.index(item)
-                column = self.tableHeaders.index(panel)
+                column = self.columnHeaders.index(panel)
                 self.outputDictionary[panel][item] = {}
                 if self.tableWidget.cellWidget(row,column).oneLotCheckBox.isChecked():
                     self.outputDictionary[panel][item]['count'] = '1 Lot'
@@ -342,7 +314,7 @@ class mainProgram(QMainWindow):
         headings.append('Item No.')
         headings.append('Description')
         headings.append('Total')
-        for i in self.tableHeaders[1:]:
+        for i in self.columnHeaders[1:]:
             headings.append(i)
 
         grid = [['' for j in range(self.tableWidget.columnCount())] for i in range(self.tableWidget.rowCount())]
@@ -365,7 +337,7 @@ class mainProgram(QMainWindow):
         #tableItemSelectionChanged()
         #tableItemChanged()
         #addItem()
-        #printDataToConsole()
+        #export()
         pass
 
     def deleteItem(self):
@@ -527,7 +499,7 @@ class pdf:
     def __init__(self, masterMatList = {}, grid=[], headings=[], name = '_.pdf', pageWidth = 8.5, pageHeight = 11):
         #print(grid)
         self.styleSheet = getSampleStyleSheet()
-        self.pagesize = (pageHeight * inch, pageWidth * inch)
+        self.pagesize = (pageWidth * inch, pageHeight * inch)
         self.styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=self.styleSheet['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
         self.styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=self.styleSheet['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
         self.doc = SimpleDocTemplate(name, pagesize=self.pagesize)
@@ -582,14 +554,17 @@ class pdf:
             colWidths.append((width-200)/len(tableData[0][3:]))
 
 
+        #Format cells
+        tableData[2][1] = Paragraph(str(tableData[2][1]),self.styleCustomCenterJustified) #"Description" cell
         for i in range(len(tableData)):
             for j in range(len(tableData[i])):
                 if j != 1:
-                    tableData[i][j] = Paragraph(str(tableData[i][j]), self.styleCustomCenterJustified)
-                
+                    tableData[i][j] = Paragraph(str(tableData[i][j]), self.styleCustomCenterJustified) #Item description cells
         for i in range(len(tableData)):
             if i > 2:
-                tableData[i][1] = Paragraph(str(tableData[i][1]), self.styleCustomLeftJustified)
+                tableData[i][1] = Paragraph(str(tableData[i][1]), self.styleCustomLeftJustified) #'Count' cells
+
+
 
         self.pdftable = Table(tableData, colWidths=colWidths, repeatRows=3, style=[
             ('GRID',(0,0),(-1,-1),0.5,colors.black),
