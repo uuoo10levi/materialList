@@ -3,7 +3,7 @@ from screeninfo import get_monitors
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPalette
-from PyQt5.QtWidgets import QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QFrame, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QPlainTextEdit, QSpacerItem, QTabWidget
+from PyQt5.QtWidgets import QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QFrame, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QPlainTextEdit, QSpacerItem, QTabWidget, QLCDNumber, QListWidget
 import json
 import addmaterialfields
 
@@ -70,16 +70,66 @@ class ItemTab(QWidget):
         #     self.itemTabLayout.addWidget(editBox, row, (column * 2) + 2, rowspan, columnspan)
 
         self.setLayout(self.itemTabLayout)
+
+class DeviceTypeListWidget(QListWidget):
+    def __init__(self):
+        super().__init__()
+        self.addItem('Relay')
+        self.addItem('Test Switch')
+        self.addItem('Lock Out Relay')
+        self.addItem('Control Switch')
+
+        self.currentItemChanged.connect(self.currentDeviceChanged)
+
+    def currentDeviceChanged(self, device):
+        DeviceItemNumber(device.text())
+        # return(device.text())
+        
+    
+class DeviceItemNumber(QComboBox):
+    def __init__(self, device):
+        super().__init__()
+
+        deviceDict = {
+            'Relay': [1, 10],
+            'Test Switch': [40, 49],
+            'Lock Out Relay': [35, 39],
+            'Control Switch': [30, 34]
+        }
+
+        print(deviceDict[device])
+        
+        for i in range(deviceDict[device][0],deviceDict[device][1]):
+            self.addItem(str(i))
         
 
 class AddMaterial(QMainWindow):
     def __init__(self):
         super(AddMaterial, self).__init__()
 
+    #--------FROM GOOGLE TO UPDATED COMBO BOX WHEN LIST BOX CHANGES--------
+    #     self.list_widget = QListWidget(self)
+    #     self.list_widget.addItem("Item 1")
+
+    #     # Create a combo box and add it to the list widget
+    #     combo_item = QListWidgetItem(self.list_widget)
+    #     combo_box = QComboBox()
+    #     combo_box.addItems(["Option 1", "Option 2"])
+    #     self.list_widget.setItemWidget(combo_item, combo_box)
+
+    #     # Update the combo box
+    #     self.update_combo_box(combo_box, ["New Option 1", "New Option 2"])
+
+    # def update_combo_box(self, combo_box, new_items):
+    #     combo_box.clear()
+    #     combo_box.addItems(new_items)
+
         self.addMaterialDialog = QDialog()
         self.addMaterialDialog.setWindowTitle('New Material List?')
         self.addMaterialDialog.setMinimumSize(800,800)
         self.addMaterialDialogLayout = QGridLayout()
+
+        
         # self.addMaterialDialogLayout.setVerticalSpacing()
         self.addMaterialDialogLayout.setSpacing(5)
         # self.addMaterialDialogLayout.setSizeConstraint()
@@ -104,49 +154,13 @@ class AddMaterial(QMainWindow):
         # self.gridArray()
         # exit()
         
-        self.grid = self.layoutGrid()
-        
-        # columnSpan = self.setColumnSpan(self.grid, 0, 5)
-        # self.centralWidget(tabs)
-        # self.addMaterialDialogLayout.addWidget(self.buildItemMainInfo(), 0,0)
-        # self.addMaterialDialogLayout.addWidget(self.buildElectricalProperties(), 1,0)
-        # self.addMaterialDialogLayout.addWidget(QLabel('Item No.'), 0, 0)
-        
-        # self.addMaterialDialogLayout.addWidget(QLabel('Item No.'), 0, 0)
-        # self.addMaterialDialogLayout.addWidget(QLineEdit('0'), 0, 1)
-        # self.addMaterialDialogLayout.addWidget(QLineEdit(), 0, 2)
-        # self.addMaterialDialogLayout.addWidget(QLineEdit(), 0, 3)
-        
-        self.setWidgetToLayout(self.addMaterialDialogLayout, self.grid)
-        
-        self.widget = QWidget()
-        self.widget.setLayout(self.addMaterialDialogLayout)
-        
-        self.setCentralWidget(self.widget)
-        
-        self.buildMainWindow()
-        
-    def gridArray(self):
-        rows = 30
-        columns = 30
-        self.grid = []
-        
-        for i in range(rows):
-            row = []
-            for j in range(columns):
-                row.append([i,j])
-            self.grid.append(row)
-            
-        print(self.grid)
-        
-    def layoutGrid(self):
-        return [
-            [[0,0,QLabel('Item No.')], [0,1,QLineEdit()], [0,2], [0,3,QLineEdit()], [0,4], [0,5,QLineEdit()], [0,6], [0,7,QLabel('Device Type')], [0, 8], [0, 9, QLabel('Major Functions')], [0, 10], [0, 11], [0, 12], [0, 13], [0, 14], [0, 15], [0, 16], [0, 17], [0, 18], [0, 19], [0, 20], [0, 21], [0, 22], [0, 23], [0, 24], [0, 25], [0, 26], [0, 27], [0, 28], [0, 29]],
-            [[1, 0,QLabel('Manufacture')], [1, 1,QLineEdit()], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [1, 8], [1, 9], [1, 10], [1, 11], [1, 12], [1, 13], [1, 14], [1, 15], [1, 16], [1, 17], [1, 18], [1, 19], [1, 20], [1, 21], [1, 22], [1, 23], [1, 24], [1, 25], [1, 26], [1, 27], [1, 28], [1, 29]],
-            [[2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [2, 5], [2, 6], [2, 7], [2, 8], [2, 9], [2, 10], [2, 11], [2, 12], [2, 13], [2, 14], [2, 15], [2, 16], [2, 17], [2, 18], [2, 19], [2, 20], [2, 21], [2, 22], [2, 23], [2, 24], [2, 25], [2, 26], [2, 27], [2, 28], [2, 29]],
-            [[3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [3, 5], [3, 6], [3, 7], [3, 8], [3, 9], [3, 10], [3, 11], [3, 12], [3, 13], [3, 14], [3, 15], [3, 16], [3, 17], [3, 18], [3, 19], [3, 20], [3, 21], [3, 22], [3, 23], [3, 24], [3, 25], [3, 26], [3, 27], [3, 28], [3, 29]],
-            [[4, 0], [4, 1], [4, 2], [4, 3], [4, 4], [4, 5], [4, 6], [4, 7], [4, 8], [4, 9], [4, 10], [4, 11], [4, 12], [4, 13], [4, 14], [4, 15], [4, 16], [4, 17], [4, 18], [4, 19], [4, 20], [4, 21], [4, 22], [4, 23], [4, 24], [4, 25], [4, 26], [4, 27], [4, 28], [4, 29]],
-            [[5, 0], [5, 1], [5, 2], [5, 3], [5, 4], [5, 5], [5, 6], [5, 7], [5, 8], [5, 9], [5, 10], [5, 11], [5, 12], [5, 13], [5, 14], [5, 15], [5, 16], [5, 17], [5, 18], [5, 19], [5, 20], [5, 21], [5, 22], [5, 23], [5, 24], [5, 25], [5, 26], [5, 27], [5, 28], [5, 29]],
+        self.grid = [
+            [[0,0,QLabel('Item No.'),1,1], [0,1,DeviceItemNumber('Relay'),1,2], [0,2], [0,3,QLineEdit(),1,2], [0,4], [0,5,QLineEdit(),1,2], [0,6], [0,7,QLabel('Device Type'),1,3], [0, 8], [0, 9], [0, 10, QLabel('Major Functions'),1,4], [0, 11], [0, 12], [0, 13], [0, 14, QLabel('Inventory'),1,2], [0, 15], [0, 16], [0, 17], [0, 18], [0, 19], [0, 20], [0, 21], [0, 22], [0, 23], [0, 24], [0, 25], [0, 26], [0, 27], [0, 28], [0, 29]],
+            [[1, 0,QLabel('Manufacture'),1,1], [1, 1,QLineEdit(),1,6], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 7, DeviceTypeListWidget(),3,3], [1, 8], [1, 9], [1, 10, QPlainTextEdit(),3,4], [1, 11], [1, 12], [1, 13], [1, 14, QLabel('Qty.'),1,1], [1, 15, QLineEdit(),1,1], [1, 16], [1, 17], [1, 18], [1, 19], [1, 20], [1, 21], [1, 22], [1, 23], [1, 24], [1, 25], [1, 26], [1, 27], [1, 28], [1, 29]],
+            [[2, 0,QLabel('Series'),1,1], [2, 1,QLineEdit(),1,6], [2, 2], [2, 3], [2, 4], [2, 5], [2, 6], [2, 7], [2, 8], [2, 9], [2, 10], [2, 11], [2, 12], [2, 13], [2, 14], [2, 15], [2, 16], [2, 17], [2, 18], [2, 19], [2, 20], [2, 21], [2, 22], [2, 23], [2, 24], [2, 25], [2, 26], [2, 27], [2, 28], [2, 29]],
+            [[3, 0,QLabel('Part Number'),1,1], [3, 1,QLineEdit(),1,6], [3, 2], [3, 3], [3, 4], [3, 5], [3, 6], [3, 7], [3, 8], [3, 9], [3, 10], [3, 11], [3, 12], [3, 13], [3, 14], [3, 15], [3, 16], [3, 17], [3, 18], [3, 19], [3, 20], [3, 21], [3, 22], [3, 23], [3, 24], [3, 25], [3, 26], [3, 27], [3, 28], [3, 29]],
+            [[4, 0,QLabel(),1,29], [4, 1], [4, 2], [4, 3], [4, 4], [4, 5], [4, 6], [4, 7], [4, 8], [4, 9], [4, 10], [4, 11], [4, 12], [4, 13], [4, 14], [4, 15], [4, 16], [4, 17], [4, 18], [4, 19], [4, 20], [4, 21], [4, 22], [4, 23], [4, 24], [4, 25], [4, 26], [4, 27], [4, 28], [4, 29]],
+            [[5, 0,QLabel('Electrical Properties'),1,4], [5, 1], [5, 2], [5, 3], [5, 4], [5, 5], [5, 6], [5, 7], [5, 8], [5, 9], [5, 10], [5, 11], [5, 12], [5, 13], [5, 14], [5, 15], [5, 16], [5, 17], [5, 18], [5, 19], [5, 20], [5, 21], [5, 22], [5, 23], [5, 24], [5, 25], [5, 26], [5, 27], [5, 28], [5, 29]],
             [[6, 0], [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], [6, 6], [6, 7], [6, 8], [6, 9], [6, 10], [6, 11], [6, 12], [6, 13], [6, 14], [6, 15], [6, 16], [6, 17], [6, 18], [6, 19], [6, 20], [6, 21], [6, 22], [6, 23], [6, 24], [6, 25], [6, 26], [6, 27], [6, 28], [6, 29]],
             [[7, 0], [7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 6], [7, 7], [7, 8], [7, 9], [7, 10], [7, 11], [7, 12], [7, 13], [7, 14], [7, 15], [7, 16], [7, 17], [7, 18], [7, 19], [7, 20], [7, 21], [7, 22], [7, 23], [7, 24], [7, 25], [7, 26], [7, 27], [7, 28], [7, 29]],
             [[8, 0], [8, 1], [8, 2], [8, 3], [8, 4], [8, 5], [8, 6], [8, 7], [8, 8], [8, 9], [8, 10], [8, 11], [8, 12], [8, 13], [8, 14], [8, 15], [8, 16], [8, 17], [8, 18], [8, 19], [8, 20], [8, 21], [8, 22], [8, 23], [8, 24], [8, 25], [8, 26], [8, 27], [8, 28], [8, 29]],
@@ -171,26 +185,55 @@ class AddMaterial(QMainWindow):
             [[27, 0], [27, 1], [27, 2], [27, 3], [27, 4], [27, 5], [27, 6], [27, 7], [27, 8], [27, 9], [27, 10], [27, 11], [27, 12], [27, 13], [27, 14], [27, 15], [27, 16], [27, 17], [27, 18], [27, 19], [27, 20], [27, 21], [27, 22], [27, 23], [27, 24], [27, 25], [27, 26], [27, 27], [27, 28], [27, 29]],
             [[28, 0], [28, 1], [28, 2], [28, 3], [28, 4], [28, 5], [28, 6], [28, 7], [28, 8], [28, 9], [28, 10], [28, 11], [28, 12], [28, 13], [28, 14], [28, 15], [28, 16], [28, 17], [28, 18], [28, 19], [28, 20], [28, 21], [28, 22], [28, 23], [28, 24], [28, 25], [28, 26], [28, 27], [28, 28], [28, 29]],
             [[29, 0], [29, 1], [29, 2], [29, 3], [29, 4], [29, 5], [29, 6], [29, 7], [29, 8], [29, 9], [29, 10], [29, 11], [29, 12], [29, 13], [29, 14], [29, 15], [29, 16], [29, 17], [29, 18], [29, 19], [29, 20], [29, 21], [29, 22], [29, 23], [29, 24], [29, 25], [29, 26], [29, 27], [29, 28], [29, 29]]
-            ]
-        
-    def setWidgetToLayout(self, layout, grid):
-        self.grid = grid
-        self.gridLayout = layout
-        
+        ]
+
         for i,row in enumerate(self.grid):
             for j,cell in enumerate(row):
                 if len(cell) != 2:
-                    print(cell)
-                    self.gridLayout.addWidget(cell[2], cell[0], cell[1], 1, self.setColumnSpan(self.grid, i, j).columnSpan)
+                    self.addMaterialDialogLayout.addWidget(cell[2], cell[0], cell[1], cell[3], cell[4])
+        
+        
+        self.widget = QWidget()
+        self.widget.setLayout(self.addMaterialDialogLayout)
+        
+        self.setCentralWidget(self.widget)
+        
+        self.buildMainWindow()
+        
+    # def gridArray(self):
+    #     rows = 30
+    #     columns = 30
+    #     self.grid = []
+        
+    #     for i in range(rows):
+    #         row = []
+    #         for j in range(columns):
+    #             row.append([i,j])
+    #         self.grid.append(row)
+            
+    #     print(self.grid)
+        
+    # def createWidget(self, widgetList):
+    #     self.widgetList = widgetList
+    #     self.widget = widgetList[2]
+        
+    # def setWidgetToLayout(self, layout, grid, columnSpan):
+    #     self.grid = grid
+    #     self.gridLayout = layout
+    #     self.columnSpan = columnSpan
+        
+    #     for i,row in enumerate(self.grid):
+    #         for j,cell in enumerate(row):
+    #             if len(cell) != 2:
+    #                 self.gridLayout.addWidget(cell[2], cell[0], cell[1], 1, self.columnSpan)
                 
         
     def setColumnSpan(self, grid, row, column):
-        self.grid = grid
         self.row = grid[row]
-        self.column = column
+        
         self.columnSpan = 1
         looking = True
-        # print(self.row[column:])
+        
         
         while looking:
             if self.column + 1 + self.columnSpan == len(self.row): 
