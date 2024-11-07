@@ -2,7 +2,7 @@
 import sys
 from screeninfo import get_monitors
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QMessageBox, QFileDialog, QRadioButton, QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QSpacerItem
+from PyQt5.QtWidgets import QShortcut, QMessageBox, QFileDialog, QRadioButton, QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QSpacerItem
 import json
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape, inch
@@ -23,6 +23,8 @@ class mainProgram(QMainWindow):
         self.signals.signal1.connect(self.resizeCell)
         self.itemNoFont = QtGui.QFont()
         self.itemNoFont.setBold(True)
+        self.resizeCellShortcut = QShortcut(QtGui.QKeySequence(self.tr("R")),self)
+        self.resizeCellShortcut.activated.connect(self.resizeCell)
 
         self.startupMessage = startupMessage()
         self.newFile = self.startupMessage.newFile
@@ -49,7 +51,7 @@ class mainProgram(QMainWindow):
         '''Defines Main Scrollable Table'''
         self.tableWidgetItems = [[]] 
         '''Defines objects to be slotted into main table cells'''
-        self.columnHeaders = ['Item No.']
+        self.columnHeaders = ['Item Options']
         '''Defines headers for the main table \n'''
         
         self.dock = QDockWidget('Menu')
@@ -126,15 +128,17 @@ class mainProgram(QMainWindow):
         self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
         self.saveJSONFile()
         self.newPanelName.setText('')
+        self.resizeCell()
 
     def buildNewMatlist(self):
         self.matListFileName = 'newFile.json'
         self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
 
         #if type(input) == type(dict()):
-        data = {"Panel":{"item":{"count":'0',"names":[],"description":""}}}
-        for i in list(data.keys()):
-            self.columnHeaders.append(i)
+        #data = {"Panel":{"item":{"count":'0',"names":[],"description":""}}}
+        data = {}
+        # for i in list(data.keys()):
+        #     self.columnHeaders.append(i)
 
         return data
     
@@ -211,13 +215,14 @@ class mainProgram(QMainWindow):
 
         self.addItemButton = QPushButton('Add Item: 0',clicked=self.addItem)
         self.printButton = QPushButton('Save',clicked=self.export)
-        self.deleteRow = QPushButton(f'Delete Row: {self.currentlySelectedCell[0]+1}',clicked=self.deleteItem)
+        self.deleteRow = QPushButton(f'Delete Item: {self.tableWidget.item(0,0).text()}',clicked=self.deleteItem)
         self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
         self.newPanelName = QLineEdit()
         self.newPanelName.setPlaceholderText('Panel Name')
         self.fileName = QLineEdit()
         self.fileName.setPlaceholderText('Project Name')
+        self.fixCellSizeButton = QPushButton('Fix Cell Size',clicked=self.resizeCell)
 
         self.dockLayout = QFormLayout()
         self.dockLayout.addRow(self.dockItemSelect)
@@ -230,6 +235,8 @@ class mainProgram(QMainWindow):
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.fileName)
         self.dockLayout.addRow(self.printButton)
+        self.dockLayout.addItem(QSpacerItem(50,300))
+        self.dockLayout.addRow(self.fixCellSizeButton)
         
         self.dockMenu = QWidget()
         self.dockMenu.setLayout(self.dockLayout)
@@ -341,8 +348,14 @@ class mainProgram(QMainWindow):
         pass
 
     def deleteItem(self):
-        self.uniqueItemNumbers.remove(self.tableWidget.item(self.currentlySelectedCell[0],0).text())
-        self.tableWidget.removeRow(self.currentlySelectedCell[0])
+        if len(self.uniqueItemNumbers) > 0:
+            self.uniqueItemNumbers.remove(self.tableWidget.item(self.currentlySelectedCell[0],0).text())
+            self.tableWidget.removeRow(self.currentlySelectedCell[0])
+        if len(self.uniqueItemNumbers) > 0:
+            self.deleteRow.setText(f'Delete Item: {self.tableWidget.item(self.currentlySelectedCell[0],0).text()}')
+        else:
+            self.deleteRow.setText(f'')
+
 
 class advancedCustomTableWidgetItem(QWidget):
     def __init__(self,signalClass, count=0,deviceNames=[]):
@@ -354,7 +367,6 @@ class advancedCustomTableWidgetItem(QWidget):
         self.countSelect.setMaximum(999)
         self.oneLotCheckBox = QCheckBox()
         self.showDevicesCheckBox = QCheckBox()
-        #self.widget = QWidget()
         self.oneLotSelected = False
 
         if count != '1 Lot':
