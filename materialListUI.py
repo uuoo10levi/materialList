@@ -62,7 +62,9 @@ class mainProgram(QMainWindow):
         '''Defines space between the add section of the right-side dock and the rest of the right-side dock'''
         self.printButton = QPushButton()
         '''Defines button to print the current table to the console'''
-        self.deleteButton = QPushButton()
+        self.deleteRow = QPushButton()
+        self.addItemButton = QPushButton()
+        self.dockItemSelect = QComboBox()
 
 
         self.currentlySelectedCell = [0,0]
@@ -98,8 +100,9 @@ class mainProgram(QMainWindow):
         self.setWindowTitle('Add Material to Contract')
 
     def addPanel(self):
-        panel, done = QInputDialog.getText(self, 'New Panel', 'Enter Name for New Panel:')
-        self.tableHeaders.append(panel)
+        #panel, done = QInputDialog.getText(self, 'New Panel', 'Enter Name for New Panel:')
+        
+        self.tableHeaders.append(self.newPanelName.text())
         self.tableWidget.insertColumn(self.tableWidget.columnCount())
         for row in range(self.tableWidget.rowCount()):
             cell = advancedCustomTableWidgetItem(self.signals)
@@ -176,9 +179,19 @@ class mainProgram(QMainWindow):
 
         self.setCentralWidget(self.tableWidget)
 
+    def updateAddRowButton(self):
+        self.addItemButton.setText('Add Item: '+self.dockItemSelect.currentText())
+    
+    def updateDeleteRowButton(self):
+        self.deleteRow.setText('Delete Item: '+self.tableWidget.item(self.currentlySelectedCell[0],0).text())
+
+    def updateDeletePanelButton(self):
+        self.deletePanelButton.setText('Delete Panel: '+self.tableHeaders[self.currentlySelectedCell[1]])
+
     def buildRightDock(self):
         self.removeDockWidget(self.dock)
         self.dockItemSelect = QComboBox()
+        self.dockItemSelect.currentTextChanged.connect(self.updateAddRowButton)
         for item in self.masterMatList.keys():
             self.dockItemSelect.addItem(item)
 
@@ -188,11 +201,13 @@ class mainProgram(QMainWindow):
         #     dockItemCountEntry.setPlaceholderText(panel)
         #     self.dockItemPanels.append(dockItemCountEntry)
 
-        self.addItemButton = QPushButton('Add Entry',clicked=self.addItem)
-        self.printButton = QPushButton('Print Data to Console',clicked=self.printDataToConsole)
-        self.deleteButton = QPushButton(f'Delete Row: {self.currentlySelectedCell[0]+1}',clicked=self.deleteItem)
+        self.addItemButton = QPushButton('Add Item: 0',clicked=self.addItem)
+        self.printButton = QPushButton('Save',clicked=self.printDataToConsole)
+        self.deleteRow = QPushButton(f'Delete Row: {self.currentlySelectedCell[0]+1}',clicked=self.deleteItem)
         self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
+        self.newPanelName = QLineEdit()
+        self.newPanelName.setPlaceholderText('Panel Name')
 
         #self.deviceNameSlots = 0
         #if self.currentlySelectedCell[1] >= 1 and self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText() != '1 Lot':
@@ -219,11 +234,13 @@ class mainProgram(QMainWindow):
         # for i in self.dockItemPanels:
         #     self.dockLayout.addRow(i)
         self.dockLayout.addRow(self.addItemButton)
+        self.dockLayout.addRow(self.deleteRow)
+        self.dockLayout.addItem(QSpacerItem(50,50))
         #for i in self.deviceNames:
         #    self.dockLayout.addRow(i)
+        self.dockLayout.addRow(self.newPanelName)
         self.dockLayout.addRow(self.addPanelButton)
         self.dockLayout.addRow(self.deletePanelButton)
-        self.dockLayout.addRow(self.deleteButton)
         self.dockLayout.addRow(self.printButton)
 
 
@@ -236,11 +253,14 @@ class mainProgram(QMainWindow):
         self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dock) 
 
     def deletePanel(self):
+        self.tableHeaders.remove(self.tableHeaders[self.currentlySelectedCell[1]])
         self.tableWidget.removeColumn(self.currentlySelectedCell[1])
 
     def tableItemSelectionChanged(self):
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
-        self.buildRightDock()
+        self.updateDeleteRowButton()
+        self.updateDeletePanelButton()
+        #self.buildRightDock()
         
     def tableItemChanged(self):
         pass
@@ -259,6 +279,7 @@ class mainProgram(QMainWindow):
                 #cell.currentTextChanged.connect(self.buildRightDock)
                 self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1,panelIndex+1,cell)
             self.uniqueItemNumbers.append(self.dockItemSelect.currentText())
+        self.resizeCell()
 
     def printDataToConsole(self):
         self.developOutputDictionary()
