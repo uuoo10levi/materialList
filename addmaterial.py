@@ -181,7 +181,7 @@ class AddMaterial(QMainWindow):
             for j,cell in enumerate(row):
                 if len(cell) != 2:
                     print(cell)
-                    self.gridLayout.addWidget(cell[2], cell[0], cell[1], 1, self.setColumnSpan(self.grid, i, j))
+                    self.gridLayout.addWidget(cell[2], cell[0], cell[1], 1, self.setColumnSpan(self.grid, i, j).columnSpan)
                 
         
     def setColumnSpan(self, grid, row, column):
