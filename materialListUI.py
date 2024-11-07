@@ -2,7 +2,7 @@
 import sys
 from screeninfo import get_monitors
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QRadioButton, QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QSpacerItem
+from PyQt5.QtWidgets import QMessageBox, QFileDialog, QRadioButton, QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QSpacerItem
 import json
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape, inch
@@ -77,7 +77,18 @@ class mainProgram(QMainWindow):
         if self.newFile:
             data = self.buildNewMatlist()
         else:
-            data = self.importData(self.matListFileName)
+            file = QFileDialog()
+            file.setNameFilter('*.json')
+            file.exec()
+            try:
+                self.matListFileName = file.selectedFiles()[0]
+                data = self.importData(self.matListFileName)
+            except:
+                message = QMessageBox()
+                message.setText('Error Loading File\nNew File Being Created')
+                message.exec()
+                data = self.buildNewMatlist()
+                
         self.getUniqueItemNumbers(data)
         self.buildInitialTable(data)
         self.buildRightDock()
@@ -208,6 +219,8 @@ class mainProgram(QMainWindow):
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
         self.newPanelName = QLineEdit()
         self.newPanelName.setPlaceholderText('Panel Name')
+        self.fileName = QLineEdit()
+        self.fileName.setPlaceholderText('File Name')
 
         #self.deviceNameSlots = 0
         #if self.currentlySelectedCell[1] >= 1 and self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).currentText() != '1 Lot':
@@ -241,6 +254,8 @@ class mainProgram(QMainWindow):
         self.dockLayout.addRow(self.newPanelName)
         self.dockLayout.addRow(self.addPanelButton)
         self.dockLayout.addRow(self.deletePanelButton)
+        self.dockLayout.addItem(QSpacerItem(50,50))
+        self.dockLayout.addRow(self.fileName)
         self.dockLayout.addRow(self.printButton)
 
 
@@ -282,6 +297,10 @@ class mainProgram(QMainWindow):
         self.resizeCell()
 
     def printDataToConsole(self):
+        if self.fileName.text():
+            self.matListFileName = self.fileName.text()+'.json'
+        self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
+        print(self.matListFileName)
         self.developOutputDictionary()
         self.saveJSONFile()
         self.makePDF()
