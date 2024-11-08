@@ -107,6 +107,8 @@ class mainProgram(QMainWindow):
             file.exec()
             try:
                 self.matListFileName = file.selectedFiles()[0]
+                self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
+
                 data = self.importData(self.matListFileName)
             except:
                 message = QMessageBox()
@@ -280,8 +282,8 @@ class mainProgram(QMainWindow):
         self.newPanelName = QLineEdit()
         self.newPanelName.setPlaceholderText('Panel Name')
         #self.newPanelName.editingFinished.connect(self.clickAddPanelButton)
-        self.fileName = QLineEdit()
-        self.fileName.setPlaceholderText('Project Name')
+        # self.fileName = QLineEdit()
+        # self.fileName.setPlaceholderText('Project Name')
         self.hintsButton = QPushButton('Hints',clicked=self.displayHints)
 
         self.dockLayout = QFormLayout()
@@ -293,7 +295,7 @@ class mainProgram(QMainWindow):
         self.dockLayout.addRow(self.addPanelButton)
         self.dockLayout.addRow(self.deletePanelButton)
         self.dockLayout.addItem(QSpacerItem(50,50))
-        self.dockLayout.addRow(self.fileName)
+        # self.dockLayout.addRow(self.fileName)
         self.dockLayout.addRow(self.printButton)
         self.dockLayout.addItem(QSpacerItem(50,300))
         self.dockLayout.addRow(self.hintsButton)
@@ -341,10 +343,12 @@ class mainProgram(QMainWindow):
         self.saved = False
 
     def export(self):
-        if self.fileName.text():
-            self.matListFileName = self.fileName.text()+'.json'
-        self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
-        #print(self.matListFileName)
+        if self.newFile:
+            self.matListFileName = QFileDialog.getSaveFileName(filter="*.json")[0]
+
+            self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
+            self.newFile = False
+
         self.developOutputDictionary()
         self.saveJSONFile()
         self.makePDF()
