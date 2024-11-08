@@ -2,7 +2,7 @@
 import sys
 from screeninfo import get_monitors
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QShortcut, QMessageBox, QFileDialog, QRadioButton, QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QSpacerItem
+from PyQt5.QtWidgets import QAction, QShortcut, QMessageBox, QFileDialog, QRadioButton, QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QSpacerItem
 import json
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape, inch
@@ -11,6 +11,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfgen.canvas import Canvas
 import re
 import os
+import ntpath
 
 
 def naturalSortKey(s):
@@ -18,22 +19,34 @@ def naturalSortKey(s):
 
 
 class mainProgram(QMainWindow):
-    def __init__(self, signalClass, matListFileName = 'projectMatlist.json', masterMaterialList = {'':''}):
+    def __init__(self, signalClass, masterMaterialList = {'':''}):
         super(mainProgram, self).__init__()
         self.signals = signalClass
-        self.signals.signal1.connect(self.resizeCell)
+        self.signals.signal1.connect(self.refreshCells)
+        self.signals.needsSaved.connect(self.needsSaved)
         self.itemNoFont = QtGui.QFont()
         self.itemNoFont.setBold(True)
-        self.resizeCellShortcut = QShortcut(QtGui.QKeySequence(self.tr("R")),self)
-        self.resizeCellShortcut.activated.connect(self.resizeCell)
-        # self.resizeCellShortcut = QShortcut(QtGui.QKeySequence(self.tr("E")),self)
-        # self.resizeCellShortcut.activated.connect(self.test)
+        self.refreshCellsShortcut = QShortcut(QtGui.QKeySequence(self.tr("R")),self)
+        self.refreshCellsShortcut.activated.connect(self.refreshCells)
+        self.refreshDockShortcut = QShortcut(QtGui.QKeySequence(self.tr("D")),self)
+        self.refreshDockShortcut.activated.connect(self.buildRightDock)
+        self.helpShortcut = QShortcut(QtGui.QKeySequence(self.tr("H")),self)
+        self.helpShortcut.activated.connect(self.displayHints)
+        self.saved = False
+        
+        self.quit = QAction("Quit",self)
+        self.quit.triggered.connect(self.closeEvent)
+        # self.refreshCellsShortcut = QShortcut(QtGui.QKeySequence(self.tr("E")),self)
+        # self.refreshCellsShortcut.activated.connect(self.test)
 
-        self.startupMessage = startupMessage()
-        self.newFile = self.startupMessage.newFile
+        code = self.startupMessage()
+        if code == 0:
+            exit()
+        elif code == 1:
+            self.newFile = True
+        elif code == 2:
+            self.newFile = False
 
-        self.matListFileName = matListFileName
-        self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
 
         self.monitor = get_monitors()
         '''Defines monitor object that allows automatic screen window sizing per screen size'''
@@ -104,11 +117,50 @@ class mainProgram(QMainWindow):
         self.getUniqueItemNumbers(data)
         self.buildInitialTable(data)
         self.buildRightDock()
+        self.saved = True
 
-        #Main Loop - Contains no code, but comments describe event functionalities
-        self.mainProgramLoop()
+    def needsSaved(self):
+        self.saved = False
 
-    def resizeCell(self):
+    def startupMessage(self):
+        '''Code = 0 -> Exit Program\n
+        Code = 1 -> New File\n
+        Code = 2 -> Existing File'''
+        code = 0
+        newFileDialog = QDialog()
+        newFileDialog.setWindowTitle('New Material List?')
+        newFileDialog.setMinimumSize(400,50)
+        newFileDialogLayout = QGridLayout()
+        newFileDialogMessage = QLabel("Create New Material List?")
+        newFileRadioButtonYes = QRadioButton()
+        newFileRadioButtonYes.setText('New Material List')
+        newFileRadioButtonNo = QRadioButton()
+        newFileRadioButtonNo.setText('Select Existing Material List')
+        newFileDialogAccept = QPushButton('Enter')
+        newFileDialogAccept.clicked.connect(newFileDialog.close)
+        newFileDialogLayout.addWidget(newFileDialogMessage,0,0)
+        newFileDialogLayout.addWidget(newFileRadioButtonYes,1,0)
+        newFileDialogLayout.addWidget(newFileRadioButtonNo,1,1)
+        newFileDialogLayout.addWidget(newFileDialogAccept)
+        newFileDialog.setLayout(newFileDialogLayout)
+        newFileDialog.exec()
+        if newFileRadioButtonYes.isChecked():
+            code = 1
+        if newFileRadioButtonNo.isChecked():
+            code = 2
+        return code
+
+    def closeEvent(self,event):
+        if self.saved == False:
+            close = QMessageBox.question(self,'QUIT','Quit Without Saving?',QMessageBox.Yes|QMessageBox.No,QMessageBox.No)
+            if close == QMessageBox.Yes:
+                event.accept()
+            else:
+                event.ignore()
+        else: 
+            event.accept()
+
+    def refreshCells(self):
         self.tableWidget.resizeColumnsToContents()
         self.tableWidget.resizeRowsToContents()
 
@@ -127,10 +179,14 @@ class mainProgram(QMainWindow):
         self.tableWidget.insertColumn(self.tableWidget.columnCount())
         for row in range(self.tableWidget.rowCount()):
             cell = advancedCustomTableWidgetItem(self.signals,coordinates=(row,self.tableWidget.columnCount()-1))
+            cell.oneLotSelected = self.tableWidget.cellWidget(row,0).oneLot.isChecked()
+            cell.oneLot()
+            cell.showDevices = self.tableWidget.cellWidget(row,0).deviceNames.isChecked()
             self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
         self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
         self.newPanelName.setText('')
-        self.resizeCell()
+        self.refreshCells()
+        self.saved = False
 
     def buildNewMatlist(self):
         self.matListFileName = 'newFile.json'
@@ -163,11 +219,8 @@ class mainProgram(QMainWindow):
         self.uniqueItemNumbers.sort(key=naturalSortKey)
 
     def buildInitialTable(self, data):
-        '''Dimensions[0] = rows, Dimensions[1] = columns'''
         dimensions = [len(self.uniqueItemNumbers),len(self.columnHeaders)]
         self.tableWidget.setColumnCount(dimensions[1])
-        #for i in range(dimensions[1]):
-        #    self.tableWidget.setColumnWidth(i,200)
         self.tableWidget.setRowCount(dimensions[0])
         self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
         self.tableWidget.setVerticalHeaderLabels(self.uniqueItemNumbers)
@@ -177,7 +230,6 @@ class mainProgram(QMainWindow):
         for panelIndex, panel in enumerate(self.columnHeaders):
             for itemIndex, item in enumerate(self.uniqueItemNumbers):
                 if panel != 'Item Options':
-                    #cell = customTableWidgetItem(data[panel][item]['count'])
                     if data[panel][item]['count'] != '1 Lot':
                         count = int(data[panel][item]['count'])
                     else:
@@ -187,15 +239,11 @@ class mainProgram(QMainWindow):
                 
                 if panel == 'Item Options':
                     itemNumberCell = firstColumnWidget(self.signals,itemNo=item,coordinates=(itemIndex,panelIndex))
-                    #itemNumberCell.setTextAlignment(QtCore.Qt.AlignCenter)
-                    #itemNumberCell.setFont(self.itemNoFont)
-                    #itemNumberCell.setFlags(QtCore.Qt.ItemIsSelectable |  QtCore.Qt.ItemIsEnabled) #Disables editing of the first column
                     self.tableWidget.setCellWidget(itemIndex,panelIndex,itemNumberCell)
 
-        self.tableWidget.itemChanged.connect(self.tableItemChanged)
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
         self.tableWidget.cellDoubleClicked.connect(self.showItemDescription)
-        self.resizeCell()
+        self.refreshCells()
 
 
         self.setCentralWidget(self.tableWidget)
@@ -231,7 +279,7 @@ class mainProgram(QMainWindow):
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
         self.newPanelName = QLineEdit()
         self.newPanelName.setPlaceholderText('Panel Name')
-        self.newPanelName.editingFinished.connect(self.addPanel)
+        #self.newPanelName.editingFinished.connect(self.clickAddPanelButton)
         self.fileName = QLineEdit()
         self.fileName.setPlaceholderText('Project Name')
         self.hintsButton = QPushButton('Hints',clicked=self.displayHints)
@@ -259,12 +307,13 @@ class mainProgram(QMainWindow):
     def displayHints(self):
         hints = QMessageBox()
         hints.setWindowTitle('Hints')
-        hints.setText('Shortcuts:\n\'R\': Resize Cells to Fit Contents\nDouble-Click Cell: Show Item Description')
+        hints.setText('Shortcuts:\n\'R\': Resize Cells to Fit Contents\n\'D\': Show Menu\n\'H\': Display Hints\nDouble-Click Cell: Show Item Description')
         hints.exec()
 
     def deletePanel(self):
         self.columnHeaders.remove(self.columnHeaders[self.currentlySelectedCell[1]])
         self.tableWidget.removeColumn(self.currentlySelectedCell[1])
+        self.saved = False
 
     def tableItemSelectionChanged(self):
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
@@ -272,9 +321,6 @@ class mainProgram(QMainWindow):
         self.updateDeletePanelButton()
         #self.buildRightDock()
         
-    def tableItemChanged(self):
-        pass
-
     def addItem(self):
         if self.dockItemSelect.currentText() not in [self.tableWidget.cellWidget(i,0).text for i in range(self.tableWidget.rowCount())]:
             self.tableWidget.insertRow(self.tableWidget.rowCount())
@@ -291,7 +337,8 @@ class mainProgram(QMainWindow):
                 self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1,panelIndex+1,cell)
             self.uniqueItemNumbers.append(self.dockItemSelect.currentText())
         self.tableWidget.setVerticalHeaderLabels(self.uniqueItemNumbers)
-        self.resizeCell()
+        self.refreshCells()
+        self.saved = False
 
     def export(self):
         if self.fileName.text():
@@ -301,14 +348,12 @@ class mainProgram(QMainWindow):
         self.developOutputDictionary()
         self.saveJSONFile()
         self.makePDF()
+        self.saved = True
         message = QMessageBox()
         directory = os.path.split(self.matListFileName)[0]
         message.setText(f'PDF and JSON saved in {directory}')
         message.exec()
-
-    def updateDeviceNames(self):
-        self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).cellDeviceNames = [i.text() for i in self.deviceNames]
-
+        
     def developOutputDictionary(self):
         self.outputDictionary = {}
         for header in self.columnHeaders:
@@ -360,14 +405,6 @@ class mainProgram(QMainWindow):
         self.pdf = pdf(masterMatList = self.masterMatList,grid=grid,headings = headings,name=self.pdfFileName)
         self.pdf.exportPDF()
 
-    def mainProgramLoop(self):
-        #Functions attached to events or buttons:
-        #tableItemSelectionChanged()
-        #tableItemChanged()
-        #addItem()
-        #export()
-        pass
-
     def deleteItem(self):
         if len(self.uniqueItemNumbers) > 0:
             self.uniqueItemNumbers.remove(self.tableWidget.cellWidget(self.currentlySelectedCell[0],0).text)
@@ -376,6 +413,7 @@ class mainProgram(QMainWindow):
             self.deleteRow.setText(f'Delete Item: {self.tableWidget.cellWidget(self.currentlySelectedCell[0],0).text}')
         else:
             self.deleteRow.setText(f'')
+        self.saved = False
 
 
 class advancedCustomTableWidgetItem(QWidget):
@@ -390,6 +428,7 @@ class advancedCustomTableWidgetItem(QWidget):
         self.layout1 = QGridLayout()
         self.countSelect = QSpinBox()
         self.countSelect.setMaximum(999)
+        self.countSelect.valueChanged.connect(self.spinBoxChanged)
         self.oneLotSelected = False
         self.showDevices = False
 
@@ -398,6 +437,7 @@ class advancedCustomTableWidgetItem(QWidget):
             self.signals.checkDeviceNames.emit(coordinates[0])
         for i in range(len(deviceNames)):
             self.deviceNames[i].setText(deviceNames[i])
+            self.deviceNames[i].editingFinished.connect(self.lineEditFinished)
 
 
 
@@ -426,10 +466,17 @@ class advancedCustomTableWidgetItem(QWidget):
 
         self.updateDeviceNameSlots()
 
+    def spinBoxChanged(self):
+        self.signals.needsSaved.emit(True)
+
+    def lineEditFinished(self):
+        self.signals.needsSaved.emit(True)
+
     def disableDeviceNames(self,coordinates):
         #print(coordinates)
         if coordinates == self.coordinates[0]:
             self.showDevices = False
+        self.updateDeviceNameSlots()
         
     def disableOneLot(self,coordinates):
         #print(coordinates)
@@ -441,6 +488,8 @@ class advancedCustomTableWidgetItem(QWidget):
         #print(coordinates)
         if coordinates == self.coordinates[0]:
             self.showDevices = True
+            self.countSelect.setValue(0)
+        self.updateDeviceNameSlots()
         
     def enableOneLot(self,coordinates):
         #print(coordinates)
@@ -448,7 +497,6 @@ class advancedCustomTableWidgetItem(QWidget):
             self.oneLotSelected = True
         self.oneLot()
         
-
     def updateDeviceNameSlots(self):
         if self.showDevices == True:
             while self.countSelect.value() != len(self.deviceNames):
@@ -473,10 +521,12 @@ class advancedCustomTableWidgetItem(QWidget):
         if self.oneLotSelected:
             self.countSelect.setValue(0)
             self.deviceNames = []
+        self.signals.needsSaved.emit(True)
 
     def removeDeviceNameSlot(self):
         self.layout1.removeWidget(self.deviceNames[-1])
         self.deviceNames.pop()
+        self.signals.needsSaved.emit(True)
         
     def oneLot(self):
         if self.oneLotSelected:
@@ -514,6 +564,7 @@ class firstColumnWidget(QWidget):
             self.signals.enableDeviceNames.emit(self.coordinates[0])
         else:
             self.signals.disableDeviceNames.emit(self.coordinates[0])
+        self.signals.needsSaved.emit(True)
 
     def enableOneLot(self):
         if self.oneLot.isChecked():
@@ -523,6 +574,7 @@ class firstColumnWidget(QWidget):
         else:
             self.signals.disableOneLot.emit(self.coordinates[0])
             self.deviceNames.setDisabled(False)
+        self.signals.needsSaved.emit(True)
 
     def checkOneLot(self,row):
         if row == self.coordinates[0]:
@@ -533,31 +585,6 @@ class firstColumnWidget(QWidget):
         if row == self.coordinates[0]:
             self.deviceNames.setChecked(True)
         
-
-class startupMessage(QWidget):
-    def __init__(self):
-        self.newFile = False
-        self.newFileDialog = QDialog()
-        self.newFileDialog.setWindowTitle('New Material List?')
-        self.newFileDialog.setMinimumSize(400,50)
-        self.newFileDialogLayout = QGridLayout()
-        self.newFileDialogMessage = QLabel("Create New Material List?")
-        self.newFileRadioButtonYes = QRadioButton()
-        self.newFileRadioButtonYes.setText('New Material List')
-        self.newFileRadioButtonNo = QRadioButton()
-        self.newFileRadioButtonNo.setText('Select Existing Material List')
-        self.newFileDialogAccept = QPushButton('Enter')
-        self.newFileDialogAccept.clicked.connect(self.newFileDialog.close)
-        self.newFileDialogLayout.addWidget(self.newFileDialogMessage,0,0)
-        self.newFileDialogLayout.addWidget(self.newFileRadioButtonYes,1,0)
-        self.newFileDialogLayout.addWidget(self.newFileRadioButtonNo,1,1)
-        self.newFileDialogLayout.addWidget(self.newFileDialogAccept)
-        self.newFileDialog.setLayout(self.newFileDialogLayout)
-        
-
-        self.newFileDialog.exec()
-        self.newFile = self.newFileRadioButtonYes.isChecked()
-
 class signalClass(QWidget):
     signal1 = QtCore.pyqtSignal()  
     enableDeviceNames = QtCore.pyqtSignal(int)
@@ -566,6 +593,7 @@ class signalClass(QWidget):
     disableOneLot = QtCore.pyqtSignal(int)
     checkDeviceNames = QtCore.pyqtSignal(int)
     checkOneLot = QtCore.pyqtSignal(int)
+    needsSaved = QtCore.pyqtSignal(bool)
 
 #--------------------------------------------------------PDF SECTION----------------------------------------------------------------
 class NumberedPageCanvas(Canvas):
@@ -604,17 +632,12 @@ class NumberedPageCanvas(Canvas):
 class pdf:
     def __init__(self, masterMatList = {}, grid=[], headings=[], name = '_.pdf', pageWidth = 8.5, pageHeight = 11):
         #print(grid)
-        self.styleSheet = getSampleStyleSheet()
-        self.pagesize = (pageWidth * inch, pageHeight * inch)
-        self.styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=self.styleSheet['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
-        self.styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=self.styleSheet['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
-        self.doc = SimpleDocTemplate(name, pagesize=self.pagesize)
         
         
         
 
         tableData = [['' for i in range(len(grid[0])+2)] for j in range(len(grid)+3)]
-        tableData[0][0] = headings[0]
+        tableData[0][0] = ntpath.basename(headings[0]).split('.')[0] + " Material List"
         tableData[2][0] = headings[3]
         tableData[2][1] = headings[4]
         tableData[2][2] = 'Total'
@@ -647,8 +670,27 @@ class pdf:
             else:
                 tableData[rowIndex+3][2] = '1 Lot'
 
+
+
+        if len(tableData[0][2:]) > 4:
+            pageWidth = 11
+            pageHeight = 8.5
+
+        if len(tableData[0][2:]) > 8:
+            pageWidth = 17
+            pageHeight = 11
+
+
+        self.styleSheet = getSampleStyleSheet()
+        self.pagesize = (pageWidth * inch, pageHeight * inch)
+        self.styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=self.styleSheet['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
+        self.styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=self.styleSheet['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
+        self.doc = SimpleDocTemplate(name, pagesize=self.pagesize)
         
-        
+
+
+
+
         self.elements = []
         # headings = ['Document Title','Item Number', 'Description', 'Total', 'Panel 1', 'Panel 2', 'Panel 3', etc]
         width = pageWidth*inch
