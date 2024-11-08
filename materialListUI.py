@@ -10,6 +10,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Table
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfgen.canvas import Canvas
 import re
+import os
 
 
 def naturalSortKey(s):
@@ -25,6 +26,8 @@ class mainProgram(QMainWindow):
         self.itemNoFont.setBold(True)
         self.resizeCellShortcut = QShortcut(QtGui.QKeySequence(self.tr("R")),self)
         self.resizeCellShortcut.activated.connect(self.resizeCell)
+        # self.resizeCellShortcut = QShortcut(QtGui.QKeySequence(self.tr("E")),self)
+        # self.resizeCellShortcut.activated.connect(self.test)
 
         self.startupMessage = startupMessage()
         self.newFile = self.startupMessage.newFile
@@ -126,7 +129,6 @@ class mainProgram(QMainWindow):
             cell = advancedCustomTableWidgetItem(self.signals,coordinates=(row,self.tableWidget.columnCount()-1))
             self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
         self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
-        self.saveJSONFile()
         self.newPanelName.setText('')
         self.resizeCell()
 
@@ -164,8 +166,8 @@ class mainProgram(QMainWindow):
         '''Dimensions[0] = rows, Dimensions[1] = columns'''
         dimensions = [len(self.uniqueItemNumbers),len(self.columnHeaders)]
         self.tableWidget.setColumnCount(dimensions[1])
-        for i in range(dimensions[1]):
-            self.tableWidget.setColumnWidth(i,200)
+        #for i in range(dimensions[1]):
+        #    self.tableWidget.setColumnWidth(i,200)
         self.tableWidget.setRowCount(dimensions[0])
         self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
         self.tableWidget.setVerticalHeaderLabels(self.uniqueItemNumbers)
@@ -192,10 +194,18 @@ class mainProgram(QMainWindow):
 
         self.tableWidget.itemChanged.connect(self.tableItemChanged)
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
+        self.tableWidget.cellDoubleClicked.connect(self.showItemDescription)
         self.resizeCell()
 
 
         self.setCentralWidget(self.tableWidget)
+
+    def showItemDescription(self):
+        self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
+        description = QMessageBox()
+        description.setWindowTitle(self.uniqueItemNumbers[self.tableWidget.currentRow()])
+        description.setText(self.masterMatList[self.uniqueItemNumbers[self.tableWidget.currentRow()]])
+        description.exec()
 
     def updateAddRowButton(self):
         self.addItemButton.setText('Add Item: '+self.dockItemSelect.currentText())
@@ -221,9 +231,10 @@ class mainProgram(QMainWindow):
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
         self.newPanelName = QLineEdit()
         self.newPanelName.setPlaceholderText('Panel Name')
+        self.newPanelName.editingFinished.connect(self.addPanel)
         self.fileName = QLineEdit()
         self.fileName.setPlaceholderText('Project Name')
-        self.fixCellSizeButton = QPushButton('Fix Cell Size',clicked=self.resizeCell)
+        self.hintsButton = QPushButton('Hints',clicked=self.displayHints)
 
         self.dockLayout = QFormLayout()
         self.dockLayout.addRow(self.dockItemSelect)
@@ -237,13 +248,19 @@ class mainProgram(QMainWindow):
         self.dockLayout.addRow(self.fileName)
         self.dockLayout.addRow(self.printButton)
         self.dockLayout.addItem(QSpacerItem(50,300))
-        self.dockLayout.addRow(self.fixCellSizeButton)
+        self.dockLayout.addRow(self.hintsButton)
         
         self.dockMenu = QWidget()
         self.dockMenu.setLayout(self.dockLayout)
         self.dock = QDockWidget('Menu')
         self.dock.setWidget(self.dockMenu)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dock) 
+
+    def displayHints(self):
+        hints = QMessageBox()
+        hints.setWindowTitle('Hints')
+        hints.setText('Shortcuts:\n\'R\': Resize Cells to Fit Contents\nDouble-Click Cell: Show Item Description')
+        hints.exec()
 
     def deletePanel(self):
         self.columnHeaders.remove(self.columnHeaders[self.currentlySelectedCell[1]])
@@ -284,7 +301,10 @@ class mainProgram(QMainWindow):
         self.developOutputDictionary()
         self.saveJSONFile()
         self.makePDF()
-        pass
+        message = QMessageBox()
+        directory = os.path.split(self.matListFileName)[0]
+        message.setText(f'PDF and JSON saved in {directory}')
+        message.exec()
 
     def updateDeviceNames(self):
         self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).cellDeviceNames = [i.text() for i in self.deviceNames]
@@ -504,13 +524,13 @@ class firstColumnWidget(QWidget):
             self.signals.disableOneLot.emit(self.coordinates[0])
             self.deviceNames.setDisabled(False)
 
-    def checkOneLot(self,value):
-        if value == self.coordinates[0]:
+    def checkOneLot(self,row):
+        if row == self.coordinates[0]:
             self.oneLot.setChecked(True)
         self.enableOneLot()
 
-    def checkDeviceNames(self,value):
-        if value == self.coordinates[0]:
+    def checkDeviceNames(self,row):
+        if row == self.coordinates[0]:
             self.deviceNames.setChecked(True)
         
 
@@ -544,7 +564,7 @@ class signalClass(QWidget):
     enableOneLot = QtCore.pyqtSignal(int)
     disableDeviceNames = QtCore.pyqtSignal(int)
     disableOneLot = QtCore.pyqtSignal(int)
-    checkDeviceNames = QtCore.pyqtSignal(bool)
+    checkDeviceNames = QtCore.pyqtSignal(int)
     checkOneLot = QtCore.pyqtSignal(int)
 
 #--------------------------------------------------------PDF SECTION----------------------------------------------------------------
@@ -589,10 +609,7 @@ class pdf:
         self.styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=self.styleSheet['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
         self.styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=self.styleSheet['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
         self.doc = SimpleDocTemplate(name, pagesize=self.pagesize)
-        self.doc.__setattr__('topMargin', 0.25*inch)
-        self.doc.__setattr__('leftMargin', 0.25*inch)
-        self.doc.__setattr__('rightMargin', 0.25*inch)
-        self.doc.__setattr__('bottomMargin', 0.25*inch)
+        
         
         
 
@@ -636,8 +653,8 @@ class pdf:
         # headings = ['Document Title','Item Number', 'Description', 'Total', 'Panel 1', 'Panel 2', 'Panel 3', etc]
         width = pageWidth*inch
         colWidths = [50,100,50]
-        for i in tableData[0][3:]:
-            colWidths.append((width-200)/len(tableData[0][3:]))
+        for i in tableData[0][2:]:
+            colWidths.append((width-200)/len(tableData[0][2:]))
 
 
         #Format cells
@@ -663,6 +680,12 @@ class pdf:
         self.elements.append(self.pdftable)
 
     def exportPDF(self):
+        self.doc.__setattr__('topMargin', 0.25*inch)
+        self.doc.__setattr__('leftMargin', 0.25*inch)
+        self.doc.__setattr__('rightMargin', 0.25*inch)
+        self.doc.__setattr__('bottomMargin', 0.25*inch)
+        
+        
         self.doc.build(self.elements, canvasmaker=NumberedPageCanvas)
 
 if  __name__ == "__main__":
