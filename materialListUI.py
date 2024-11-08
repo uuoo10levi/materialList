@@ -21,6 +21,7 @@ def naturalSortKey(s):
 class mainProgram(QMainWindow):
     def __init__(self, signalClass, masterMaterialList = {'':''}):
         super(mainProgram, self).__init__()
+        self.masterMatList = masterMaterialList
         self.signals = signalClass
         self.signals.signal1.connect(self.refreshCells)
         self.signals.needsSaved.connect(self.needsSaved)
@@ -36,8 +37,6 @@ class mainProgram(QMainWindow):
         
         self.quit = QAction("Quit",self)
         self.quit.triggered.connect(self.closeEvent)
-        # self.refreshCellsShortcut = QShortcut(QtGui.QKeySequence(self.tr("E")),self)
-        # self.refreshCellsShortcut.activated.connect(self.test)
 
         code = self.startupMessage()
         if code == 0:
@@ -48,6 +47,7 @@ class mainProgram(QMainWindow):
             self.newFile = False
 
 
+        #Variable Declarations
         self.monitor = get_monitors()
         '''Defines monitor object that allows automatic screen window sizing per screen size'''
         self.monitorXSize = int()
@@ -62,14 +62,12 @@ class mainProgram(QMainWindow):
         '''Defines width of window'''
         self.ySize = int()
         '''Defines height of window'''
-
         self.tableWidget = QTableWidget()                   
         '''Defines Main Scrollable Table'''
         self.tableWidgetItems = [[]] 
         '''Defines objects to be slotted into main table cells'''
         self.columnHeaders = ['Item Options']
         '''Defines headers for the main table \n'''
-        
         self.dock = QDockWidget('Menu')
         '''Defines right-side dock'''
         self.dockMenu = QWidget()
@@ -94,8 +92,7 @@ class mainProgram(QMainWindow):
 
         self.currentlySelectedCell = [0,0]
         self.uniqueItemNumbers = []
-        self.masterMatList = masterMaterialList
-        '''Defines a dictionary of form {"|Item No.|":"|Description|"}'''
+
 
         #Initial Setup
         self.buildMainWindow()
@@ -120,6 +117,16 @@ class mainProgram(QMainWindow):
         self.buildInitialTable(data)
         self.buildRightDock()
         self.saved = True
+
+    def renamePanel(self):
+        newPanelName = QInputDialog()
+        newPanelName.setWindowTitle("Rename Panel:")
+        newPanelName.setLabelText("Rename Panel:")
+        newPanelName.exec()
+        name = newPanelName.textValue()
+        self.columnHeaders[self.currentlySelectedCell[1]] = name
+        self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
+        
 
     def needsSaved(self):
         self.saved = False
@@ -184,6 +191,7 @@ class mainProgram(QMainWindow):
             cell.oneLotSelected = self.tableWidget.cellWidget(row,0).oneLot.isChecked()
             cell.oneLot()
             cell.showDevices = self.tableWidget.cellWidget(row,0).deviceNames.isChecked()
+            #print(cell.showDevices)
             self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
         self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
         self.newPanelName.setText('')
@@ -203,9 +211,6 @@ class mainProgram(QMainWindow):
         return data
     
     def importData(self, input):
-        '''If input is a string representing a path to a json file, import data from the json file\n
-        If input is a dictionary, import data from the dictionary'''
-        #if type(input) == type(str()) and input != 'new':
         with open(input) as jsonFile:
             data = json.load(jsonFile)
             for i in list(data.keys()):
@@ -237,6 +242,8 @@ class mainProgram(QMainWindow):
                     else:
                         count = '1 Lot'
                     cell = advancedCustomTableWidgetItem(self.signals, count=count,deviceNames=data[panel][item]['names'],coordinates=(itemIndex,panelIndex))
+                    cell.showDevices = self.tableWidget.cellWidget(itemIndex,0).deviceNames.isChecked()
+                    
                     self.tableWidget.setCellWidget(itemIndex,panelIndex,cell)
                 
                 if panel == 'Item Options':
@@ -281,10 +288,8 @@ class mainProgram(QMainWindow):
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
         self.newPanelName = QLineEdit()
         self.newPanelName.setPlaceholderText('Panel Name')
-        #self.newPanelName.editingFinished.connect(self.clickAddPanelButton)
-        # self.fileName = QLineEdit()
-        # self.fileName.setPlaceholderText('Project Name')
         self.hintsButton = QPushButton('Hints',clicked=self.displayHints)
+        self.renamePanelButton = QPushButton('Rename Panel',clicked=self.renamePanel)
 
         self.dockLayout = QFormLayout()
         self.dockLayout.addRow(self.dockItemSelect)
@@ -293,9 +298,9 @@ class mainProgram(QMainWindow):
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.newPanelName)
         self.dockLayout.addRow(self.addPanelButton)
+        self.dockLayout.addRow(self.renamePanelButton)
         self.dockLayout.addRow(self.deletePanelButton)
         self.dockLayout.addItem(QSpacerItem(50,50))
-        # self.dockLayout.addRow(self.fileName)
         self.dockLayout.addRow(self.printButton)
         self.dockLayout.addItem(QSpacerItem(50,300))
         self.dockLayout.addRow(self.hintsButton)
@@ -387,9 +392,9 @@ class mainProgram(QMainWindow):
     def makePDF(self):
         headings = [self.matListFileName]
         headings.append('')
-        headings.append('')
-        headings.append('Item No.')
-        headings.append('Description')
+        headings.append('QUANTITY/DEVICE NO.')
+        headings.append('ITEM NO.')
+        headings.append('EQUIPMENT DESCRIPTION')
         headings.append('Total')
         for i in self.columnHeaders[1:]:
             headings.append(i)
