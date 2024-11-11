@@ -8,30 +8,39 @@
           <mxGeometry x="40" y="40" width="80" height="60" as="geometry" />
         </mxCell>
         <mxCell id="nOQdwXKP3B8faJNCyLFp-6" value="New&lt;br&gt;Existing" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="30" y="170" width="100" height="100" as="geometry" />
+          <mxGeometry x="30" y="300" width="100" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="nOQdwXKP3B8faJNCyLFp-7" value="" style="endArrow=none;html=1;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="nOQdwXKP3B8faJNCyLFp-6" target="nOQdwXKP3B8faJNCyLFp-5">
+        <mxCell id="nOQdwXKP3B8faJNCyLFp-7" value="" style="endArrow=none;html=1;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="nOQdwXKP3B8faJNCyLFp-14" target="nOQdwXKP3B8faJNCyLFp-5">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
             <mxPoint x="340" y="290" as="sourcePoint" />
             <mxPoint x="390" y="240" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="nOQdwXKP3B8faJNCyLFp-8" value="&lt;div&gt;Select Existing&lt;/div&gt;&lt;div&gt;Material&lt;br&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="210" y="190" width="120" height="60" as="geometry" />
+          <mxGeometry x="210" y="320" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="nOQdwXKP3B8faJNCyLFp-10" value="Existing" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry width="80" relative="1" as="geometry">
-            <mxPoint x="130" y="219.66" as="sourcePoint" />
-            <mxPoint x="210" y="219.66" as="targetPoint" />
+            <mxPoint x="130" y="349.65999999999997" as="sourcePoint" />
+            <mxPoint x="210" y="349.65999999999997" as="targetPoint" />
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
         <mxCell id="nOQdwXKP3B8faJNCyLFp-12" value="New" style="html=1;verticalAlign=bottom;startArrow=classic;startFill=1;endArrow=none;startSize=6;endSize=8;curved=0;rounded=0;horizontal=0;endFill=0;labelPosition=center;verticalLabelPosition=top;align=center;spacingBottom=4;spacingLeft=-5;" edge="1" parent="1">
           <mxGeometry x="-0.1429" width="80" relative="1" as="geometry">
-            <mxPoint x="80" y="340" as="sourcePoint" />
-            <mxPoint x="80" y="270" as="targetPoint" />
+            <mxPoint x="80" y="470" as="sourcePoint" />
+            <mxPoint x="80" y="400" as="targetPoint" />
             <mxPoint as="offset" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="nOQdwXKP3B8faJNCyLFp-16" value="" style="endArrow=none;html=1;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="nOQdwXKP3B8faJNCyLFp-6" target="nOQdwXKP3B8faJNCyLFp-14">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="80" y="300" as="sourcePoint" />
+            <mxPoint x="80" y="100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nOQdwXKP3B8faJNCyLFp-14" value="&lt;div&gt;Material&lt;/div&gt;&lt;div&gt;Search?&lt;br&gt;&lt;/div&gt;" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="30" y="150" width="100" height="100" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
