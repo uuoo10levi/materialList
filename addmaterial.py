@@ -44,6 +44,12 @@ class CSpinBox(QSpinBox):
         self.setMaximum(max)
         '''set maximum number in spinbox if variable is spplied if not it will be set to 999'''
         
+# class CListWidget(QListWidget):
+#     def __init__(self, name):
+#         QListWidget.__init__()
+        
+#         self.name = name
+        
 class AddMaterial(QMainWindow):
     def __init__(self):
         super(AddMaterial, self).__init__()
@@ -271,9 +277,14 @@ class AddMaterial(QMainWindow):
             temp = (field.currentItem().text())
         elif fieldType == 'CSpinBox' or fieldType == 'QSpinBox':
             temp = str(field.value())
-        else:
-            temp = 'NULL'
-        print(temp)
+            if temp == '0':
+                temp = ''
+            else:
+                temp = ''
+        elif fieldType == 'QCheckBox':
+            temp = str(field.isChecked())
+            
+        print(fieldType)
         return(temp)
         
     def importDeviceTypeDict(self, jsonFilePath):
@@ -343,15 +354,67 @@ class AddMaterial(QMainWindow):
         for i,key in enumerate(self.gridFieldDict):
             keyValue = self.gridFieldDict[key]
             if type(keyValue) is list:
-                print(keyValue)
                 keyText = ''.join([j if type(j) is str else self.currentTextValue(self.grid[j[0]][j[1]]) for j in keyValue])
                         
             elif type(keyValue) is tuple:
                 keyText = self.currentTextValue(self.grid[keyValue[0]][keyValue[1]])
             
-            self.itemDict[key] = keyText
-        print(self.itemDict)
+            if keyText != '':
+                self.itemDict[key] = keyText
         
+    # def createItemDescription(self):
+    #     self.gridFieldDict = {
+    #         'Item Number': [(1,1), (1,2), (1,3)],
+    #         'Manufacture': (2,1),
+    #         'Series': (3,1),
+    #         'Part Number': (4,1),
+    #         'Device Type': (2,4),
+    #         'Power Supply Voltage': (7,1),
+    #         'Control Voltage': (8,1),
+    #         'AC Current Input': (9,1),
+    #         'AC Voltage Input': (10,1),
+    #         'Zones of Protection': (11,1),
+    #         'Coil Operation Volt.': (12,1),
+    #         'Reset': (13,1),
+    #         'Meter Form': (14,1),
+    #         'Number of Phases': (15,1),
+    #         'Number of Wires': (16,1),
+    #         'Test Switch Arr. A': (17,1),
+    #         'Test Switch Arr. B': (18,1),
+    #         'Test Switch Arr. C': (19,1),
+    #         'Lamp Voltage': (20,1),
+    #         'Orentation': (22,1),
+    #         'Mounting': (23,1),
+    #         'Rack Units': (24,1),
+    #         'User Interface': (25,1),
+    #         'Handle Style': (26,1),
+    #         'Action': (27,1),
+    #         'Decks': (28,1),
+    #         'Test Switch Cover': (29,1),
+    #         'Lamp Color': (30,1),
+    #         'Lens Color': (31,1),
+    #         'Length': [(32,1), (32,2)],
+    #         'Standard Inputs': [(8,5), (8,6), (9,5), (9,6)],
+    #         'Standard Outputs': [(10,5), (10,6), (11,5), (11,6)],
+    #         'Additional Inputs': [(13,5), (13,6), (14,5), (14,6), (18,5), (18,6), (19,5), (19,6), (23,5), (23,6), (24,5), (24,6)],
+    #         'Standard Outputs': [(15,5), (15,6), (16,5), (16,6), (20,5), (20,6), (21,5), (21,6), (25,5), (25,6), (25,5), (26,6)],
+    #         'catalog cut included': (29,5),
+    #         'Photo on file': (31,5),
+    #         'Check for the on each contract': (33,5),
+    #         'Major Functions': (2,7),
+    #         'Comm. Interface': [(7,10), (7,11), (8,10),(8,11),(9,10),(9,11),(10,10),(10,11),(11,10),(11,11),(12,10),(12,11),(13,10),(13,11),(14,10),(14,11)],
+    #         'Communications Protocals': (15,11),
+    #         'Material Status': (17,10),
+    #         'Itemized Pricing': (18,10),
+    #         'Short Name': (20,9),
+    #         'Inventory Qty': (2,13),
+    #         'Inventory Location': (4,12)
+    #     }
+        
+    #     for i,key in enumerate(self.itemDict.keys()):
+    #         print(key)
+            
+                
     def keyPressEvent(self, event):
         #F8 Toggle Display grid
         if event.key() == Qt.Key_F3:
@@ -373,8 +436,6 @@ class AddMaterial(QMainWindow):
                 for i in self.gridCoords:
                     i.setHidden(True)
                     i.setStyleSheet('color: rgb(200,200,200); border: 1px solid rgb(200,200,200)')
-                    # self.addMaterialDialogLayout.addWidget(i, i, j)
-                    
                     self.columnSpan = 1
         
             for i,row in enumerate(self.grid):
