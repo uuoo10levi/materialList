@@ -1,0 +1,46 @@
+{
+    "Relay": {
+        "itemnumberrange": [1,9],
+        "hidefieldname": ["Reset", "Meter Form", "Test Switch Arr. A", "Test Switch Arr. B", "Test Swtich Arr. C", "Lamp Voltage", "Handle Style", "Action", "Decks", "Test Switch Cover", "Lamp Color", "Lens Color", "Lenght"]
+    },
+    "Clock/RTAC/Revenue meter": {
+        "itemnumberrange": [10,19],
+        "hidefieldname": []
+    },
+    "Carrier equipment": {
+        "itemnumberrange": [20,29],
+        "hidefieldname": []
+    },
+    "Control switch/Other rotary switch/Pushbuttons":{
+        "itemnumberrange": [30,39],
+        "hidefieldname": []
+    },
+    "Test Switch": {
+        "itemnumberrange": [40,49],
+        "hidefieldname": ["Power Supply Voltage", "Control Voltage", "AC Current Input", "Zones of Protection", "Coil Operation Voltage", "Reset", "Meter Form", "Number of Phases", "Number of Wires", "Lamp Voltage", "User Interface", "Handle Style", "Action", "Decks", "Lamp Color", "Lens Color", "Length", "Length Units", "Input Types", "Output Types", "Comm. Interface", "Communications Protocols"]
+    },
+    "Display meter/Transducer": {
+        "itemnumberrange": [50,59],
+        "hidefieldname": []
+    },
+    "Auxiliary instrument/Transformer/Signal conditioner": {
+        "itemnumberrange": [60,69],
+        "hidefieldname": []
+    },
+    "Resistor/Indication lamp": {
+        "itemnumberrange": [70,79],
+        "hidefieldname": []
+    },
+    "Auxiliary relay": {
+        "itemnumberrange": [80,89],
+        "hidefieldname": []
+    },
+    "Miscellaneous panel material": {
+        "itemnumberrange": [90,179],
+        "hidefieldname": []
+    },
+    "Cable":{
+       "itemnumberrange": [200,210],
+        "hidefieldname": []
+    }
+}

@@ -1,0 +1,210 @@
+{
+      "Power Supply Voltage": [
+            "(2) 125/250V DC or AC",
+            "100/120/220/230-240V AC",
+            "110-250V DC or 110-240V AC",
+            "12 Vdc",
+            "120",
+            "120V AC",
+            "12-24V DC",
+            "12-24VDC",
+            "125/250V AC or DC",
+            "125/250V AC/DC",
+            "125/250V DC or 120/230V AC",
+            "125/250V DC or 120/240V AC",
+            "125/250V DC or AC",
+            "125/250V DC, 120/240V AC",
+            "125-250V DC or 120-240V AC",
+            "12V DC",
+            "18-300V DC or 85-264V AC",
+            "2 supplies, both at 125/250V DC or 120/240V AC",
+            "2 supplies, both at 48/125V DC or 120V AC",
+            "24/48V DC",
+            "24-250V DC or 115V AC",
+            "24-250V DC, 110-230V AC",
+            "24V DC",
+            "48/125V DC",
+            "48/125V DC or 110/120V AC",
+            "48/125V DC or 110-120V AC",
+            "48/125V DC or 120V AC",
+            "48/125V DC or 125V AC",
+            "48/125V DC, 120V AC",
+            "48-125V DC",
+            "48-125V DC or 110-120V AC",
+            "48-250V DC or 55-240V AC",
+            "48-250V DC or 55-240V AC, with monitoring",
+            "5-10V DC",
+            "5-15V DC",
+            "5-30V DC",
+            "5V DC via 120V AC power supply",
+            "5V or 9-30V DC",
+            "88-290V DC or 85-264V AC, with monitoring",
+            "90-305"
+      ],
+      "Control Voltage": [
+            "12V DC",
+            "24V DC",
+            "48V DC",
+            "48V AC/DC",
+            "125V AC",
+            "125V DC",
+            "125V AC/DC"
+      ],
+      "Coil Operating Voltage": [
+            "48V DC",
+            "48V AC",
+            "110V DC",
+            "120V AC",
+            "125V DC"
+      ],
+      "Reset": [
+            "Manual",
+            "Electric"
+      ],
+      "Meter Form": [
+            "Form 9 (4-wire wye; 3 PTs, 3 CTs)",
+            "Form 9S (4-wire wye; 3 PTs, 3 CTs)"
+      ],
+      "Test Switch Arrangement A": [
+            "P,P,P,P,P,P,P,P,P,P",
+            "C-C,C-C,C-C,P,P,P,P",
+            "P,C-C,P,C-C,P,C-C,P",
+            "T,C-C,T,C-C,T,C-C,T",
+            "C-C,P,P,P,P,P,P,P,P",
+            "C-C,C-C,C-C,C-C,C-C",
+            "C-C,C-C,C-C,C-C,P,P",
+            "C-C,C-C,C-C,P,P,P,P",
+            "C-C,C-C,P,P,P,P,P,P",
+            "P,P,P,P,P,P,P,P,P,P,P,P,P,P",
+            "P,C-C,P,C-C,P,C-C,P,P,P,P,P"
+      ],
+      "Test Switch Arrangement B": [
+            "P,P,P,P,P,P,P,P,P,P",
+            "C-C,C-C,C-C,P,P,P,P",
+            "P,C-C,P,C-C,P,C-C,P",
+            "T,C-C,T,C-C,T,C-C,T",
+            "C-C,P,P,P,P,P,P,P,P",
+            "C-C,C-C,C-C,C-C,C-C",
+            "C-C,C-C,C-C,C-C,P,P",
+            "C-C,C-C,C-C,P,P,P,P"
+      ],
+      "Test Switch Arrangement C": [
+            "P,P,P,P,P,P,P,P,P,P",
+            "C-C,C-C,C-C,P,P,P,P",
+            "P,C-C,P,C-C,P,C-C,P",
+            "T,C-C,T,C-C,T,C-C,T",
+            "C-C,P,P,P,P,P,P,P,P",
+            "C-C,C-C,C-C,C-C,C-C",
+            "C-C,C-C,C-C,C-C,P,P",
+            "C-C,C-C,C-C,P,P,P,P"
+      ],
+      "Lamp Voltage": [
+            "48V DC",
+            "125V DC"
+      ],
+      "Orientation": [
+            "Horizontal",
+            "Vertical"
+      ],
+      "Mounting": [
+            "Rack",
+            "Panel"
+      ],
+      "User Interface": [
+            "Programmable Pushbuttons",
+            "Hard-wired Pushbuttons",
+            "SafeLock Trip/Close pushbuttons and configurable labels",
+            "Touchscreen and programmable pushbuttons"
+      ],
+      "Handle Style": [
+            "Pistol grip",
+            "Oval",
+            "Oval - removeable",
+            "Round - knurled",
+            "Round - notched",
+            "Round",
+            "Round - blue",
+            "Pistol grip - red",
+            "Pistol grip - yellow",
+            "Round - green"
+      ],
+      "Action": [
+            "Spring Return",
+            "Maintian"
+      ],
+      "Test Switch Cover": [
+            "Full length, clear",
+            "Individual, clear",
+            "Full length, black",
+            "Individual, black",
+            "Black",
+            "Clear"
+      ],
+      "Lamp Color": [
+            "Red",
+            "Green",
+            "Amber",
+            "Blue",
+            "Yellow"
+      ],
+      "Lens Color": [
+            "Clear",
+            "Red",
+            "Green",
+            "Amber",
+            "Blue",
+            "Yellow",
+            "Smoke",
+            "None"
+      ],
+      "Length Units": [
+            "feet",
+            "inches",
+            "meters",
+            "yards"
+      ],
+      "Input Types": [
+            "None",
+            "inputs",
+            "optoisolated inputs"
+      ],
+      "Output Types": [
+            "None",
+            "outputs",
+            "high speed outputs",
+            "high current outputs",
+            "hogh speed - high current outputs"
+      ],
+      "Comm. Interface": [
+            "",
+            "100Base-FX MM LC",
+            "10/100Base-T",
+            "Fiber optic MM ST 850 nm",
+            "EIA-485 terminal block",
+            "EIA-485 DB9",
+            "EIA-232 terminal block",
+            "EIA-232 DB9",
+            "EIA-232/EIA-485 DB9",
+            "EIA-232/EIA-485 terminal block",
+            "100Base-LX10 SM",
+            "BNC IRIG In",
+            "BNC IRIG Out",
+            "Optical",
+            "Telephone modem",
+            "USB A",
+            "BNC IRIG",
+            "TNC",
+            "IRIG terminal block",
+            "USB B",
+            "Fiber optic SM ST 1300 nm",
+            "10/100/1000Base-T",
+            "SD card socket",
+            "EIA-422 25-pin male",
+            "EIA-232/EIA-485 RJ45",
+            "USB C"
+      ],
+      "Material Status": [
+            "OBSOLETE",
+            "NOT RECOMMENDED"
+      ]
+}
