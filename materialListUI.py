@@ -12,6 +12,7 @@ from reportlab.pdfgen.canvas import Canvas
 import re
 import os
 import ntpath
+import csv
 
 
 def naturalSortKey(s):
@@ -33,6 +34,10 @@ class mainProgram(QMainWindow):
         self.refreshDockShortcut.activated.connect(self.buildRightDock)
         self.helpShortcut = QShortcut(QtGui.QKeySequence(self.tr("H")),self)
         self.helpShortcut.activated.connect(self.displayHints)
+        self.cableDataShortcut = QShortcut(QtGui.QKeySequence(self.tr("C")),self)
+        self.cableDataShortcut.activated.connect(self.showCableData)
+        #self.deviceNames = QShortcut(QtGui.QKeySequence(self.tr("N")),self)
+        #self.deviceNames.activated.connect(self.getAllDeviceNames)
         self.saved = False
         
         self.quit = QAction("Quit",self)
@@ -92,6 +97,7 @@ class mainProgram(QMainWindow):
 
         self.currentlySelectedCell = [0,0]
         self.uniqueItemNumbers = []
+        self.loosePanelPresent = False
 
 
         #Initial Setup
@@ -100,7 +106,7 @@ class mainProgram(QMainWindow):
             data = self.buildNewMatlist()
         else:
             file = QFileDialog()
-            file.setNameFilter('*.json')
+            file.setNameFilters(["Text files (*.csv *.json)"])
             file.exec()
             try:
                 self.matListFileName = file.selectedFiles()[0]
@@ -118,6 +124,29 @@ class mainProgram(QMainWindow):
         self.buildRightDock()
         self.saved = True
 
+    def getAllDeviceNames(self):
+        deviceNames = []
+        for rowIndex, row in enumerate(self.uniqueItemNumbers):
+            for columnIndex, column in enumerate(self.columnHeaders[1:]):
+                for deviceName in self.tableWidget.cellWidget(rowIndex,columnIndex+1).deviceNames:
+                    deviceNames.append(deviceName.text())
+        return deviceNames
+    
+
+    def showCableData(self):
+        pass
+        
+        self.cableDataWindow1 = cableDataWindow(10, panels=self.columnHeaders[1:], deviceNumbers=self.getAllDeviceNames())
+        self.cableDataWindow1.exec()
+        self.cableData = self.cableDataWindow1.returnCableData()
+        #self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
+        #cableData = self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).cableData
+        #self.cableDataWindow1 = cableDataWindow(self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).countSelect.value(), 
+        #                                        cableData=cableData,
+        #                                        panels=self.columnHeaders[1:]
+        #                                        )
+        #self.cableDataWindow1.show()
+
     def renamePanel(self):
         newPanelName = QInputDialog()
         newPanelName.setWindowTitle("Rename Panel:")
@@ -127,7 +156,6 @@ class mainProgram(QMainWindow):
         self.columnHeaders[self.currentlySelectedCell[1]] = name
         self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
         
-
     def needsSaved(self):
         self.saved = False
 
@@ -210,18 +238,43 @@ class mainProgram(QMainWindow):
 
         return data
     
-    def importData(self, input):
-        with open(input) as jsonFile:
-            data = json.load(jsonFile)
-            for i in list(data.keys()):
+    def importData(self, inputFile):
+        data = {}
+        if inputFile.split('.')[1] == 'json':
+            with open(inputFile) as jsonFile:
+                data = json.load(jsonFile)
+        elif inputFile.split('.')[1] == 'csv':
+            with open (inputFile,newline='') as file:
+                csvData = list(csv.reader(file))
+            panelList = []
+            itemList = ['description']
+            for row in csvData[1:]:
+                if row[0] not in itemList:
+                    itemList.append(row[0])
+                if row[2] not in panelList:
+                    panelList.append(row[2])
+            for panel in panelList:
+                data[panel] = {}
+                for item in itemList:
+                    data[panel][item] = {'count':0,'names':[],'description':''}
+            for row in csvData[1:]:
+                data[row[2]][row[0]]['count'] = data[row[2]][row[0]]['count'] + 1
+                data[row[2]][row[0]]['names'].append(row[1])
+
+
+        for i in list(data.keys()): 
+            if i != 'cableData':
                 self.columnHeaders.append(i)
+                if i == 'Loose and Not Mounted':
+                    self.loosePanelPresent = True
         return data   
 
     def getUniqueItemNumbers(self,data):
         for panel in data:
-            for item in data[panel]:
-                if item != 'description' and item not in self.uniqueItemNumbers:
-                    self.uniqueItemNumbers.append(item)
+            if panel != 'cableData':
+                for item in data[panel]:
+                    if item != 'description' and item not in self.uniqueItemNumbers:
+                        self.uniqueItemNumbers.append(item)
         
         self.uniqueItemNumbers.sort(key=naturalSortKey)
 
@@ -290,6 +343,7 @@ class mainProgram(QMainWindow):
         self.newPanelName.setPlaceholderText('Panel Name')
         self.hintsButton = QPushButton('Hints',clicked=self.displayHints)
         self.renamePanelButton = QPushButton('Rename Panel',clicked=self.renamePanel)
+        self.addLooseButton = QPushButton('Add "Loose and Not Mounted"',clicked=self.addLoose)
 
         self.dockLayout = QFormLayout()
         self.dockLayout.addRow(self.dockItemSelect)
@@ -300,6 +354,7 @@ class mainProgram(QMainWindow):
         self.dockLayout.addRow(self.addPanelButton)
         self.dockLayout.addRow(self.renamePanelButton)
         self.dockLayout.addRow(self.deletePanelButton)
+        self.dockLayout.addRow(self.addLooseButton)
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.printButton)
         self.dockLayout.addItem(QSpacerItem(50,300))
@@ -310,14 +365,33 @@ class mainProgram(QMainWindow):
         self.dock = QDockWidget('Menu')
         self.dock.setWidget(self.dockMenu)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dock) 
+    
+    def addLoose(self):
+        if not self.loosePanelPresent:
+            self.columnHeaders.append('Loose and Not Mounted')
+            self.tableWidget.insertColumn(self.tableWidget.columnCount())
+            for row in range(self.tableWidget.rowCount()):
+                cell = advancedCustomTableWidgetItem(self.signals,coordinates=(row,self.tableWidget.columnCount()-1))
+                cell.oneLotSelected = self.tableWidget.cellWidget(row,0).oneLot.isChecked()
+                cell.oneLot()
+                cell.showDevices = self.tableWidget.cellWidget(row,0).deviceNames.isChecked()
+                #print(cell.showDevices)
+                self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
+            self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
+            self.newPanelName.setText('')
+            self.refreshCells()
+            self.saved = False
+            self.loosePanelPresent = True
 
     def displayHints(self):
         hints = QMessageBox()
         hints.setWindowTitle('Hints')
-        hints.setText('Shortcuts:\n\'R\': Resize Cells to Fit Contents\n\'D\': Show Menu\n\'H\': Display Hints\nDouble-Click Cell: Show Item Description')
+        hints.setText('Shortcuts:\n\'R\': Resize Cells to Fit Contents\n\'D\': Show Menu\n\'H\': Display Hints\nDouble-Click Cell: Show Item Description\nType: "<br/>" when entering data to force a new line')
         hints.exec()
 
     def deletePanel(self):
+        if self.columnHeaders[self.currentlySelectedCell[1]] == 'Loose and Not Mounted':
+            self.loosePanelPresent = False
         self.columnHeaders.remove(self.columnHeaders[self.currentlySelectedCell[1]])
         self.tableWidget.removeColumn(self.currentlySelectedCell[1])
         self.saved = False
@@ -380,6 +454,11 @@ class mainProgram(QMainWindow):
                     self.outputDictionary[panel][item]['count'] = self.tableWidget.cellWidget(row,column).countSelect.value()
                 self.outputDictionary[panel][item]['names'] = [i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames]
                 self.outputDictionary[panel][item]['description'] = ''
+                #if item[0] == '2' and len(item) >= 3: #Only for cables
+                #    self.outputDictionary[panel][item]['cables'] = self.tableWidget.cellWidget(row,column).cableData
+                #else:
+                #    self.outputDictionary[panel][item]['cables'] = 'N/A'
+        self.outputDictionary['cableData'] = self.cableData
                     
     def saveJSONFile(self):
         self.developOutputDictionary()
@@ -440,6 +519,20 @@ class advancedCustomTableWidgetItem(QWidget):
         self.countSelect.valueChanged.connect(self.spinBoxChanged)
         self.oneLotSelected = False
         self.showDevices = False
+
+        #List of dictionaries for cable data
+        #One dictionary entry per cable
+        #Add button to show new window with table that has one row per cable in cell
+        self.cableData = [{"From Relay Type":'',
+                          "From Device Number":'',
+                          "From Port":'',
+                          "From Panel Number":'',
+                          "To Relay Type":'',
+                          "To Device Number":'',
+                          "To Port":'',
+                          "To Panel Number":'',
+                          'Estimated Length':''}]
+        
 
         self.deviceNames = [QLineEdit() for i in deviceNames]
         if len(self.deviceNames)>0:
@@ -604,6 +697,84 @@ class signalClass(QWidget):
     checkOneLot = QtCore.pyqtSignal(int)
     needsSaved = QtCore.pyqtSignal(bool)
 
+class cableDataWindow(QDialog):
+    def __init__(self, cableCount, cableData = [{"Item No.":'',
+                                    "Cable Type":'',
+                                    "Estimated Length":'',
+                                    "From\nRelay Type":'',
+                                    "From\nDevice Number":'',
+                                    "From\nPort":'',
+                                    "From\nPanel Number":'',
+                                    "To\nRelay Type":'',
+                                    "To\nDevice Number":'',
+                                    "To\nPort":'',
+                                    "To\nPanel Number":''}], 
+                                    cableTypes = ['No Available Cable Types'],
+                                    relayTypes = ['No Available Relay Types'], 
+                                    deviceNumbers = ['No Available Device Numbers'], 
+                                    panels = ['No Available Panel Numbers']):
+        QMainWindow.__init__(self)
+        self.setMinimumSize(1500,500)
+        self.setWindowTitle('Cable Summary')
+        self.table = QTableWidget()
+        self.tableHeaders = list(cableData[0].keys())
+        self.table.setRowCount(cableCount)
+        self.table.setColumnCount(len(self.tableHeaders))
+        self.table.setHorizontalHeaderLabels(self.tableHeaders)
+        for rowIndex in range(cableCount):
+            for columnIndex, column in enumerate(self.tableHeaders):
+                if len(cableData) > rowIndex:
+                    cellInitialValue = cableData[rowIndex][column]
+                else: 
+                    cellInitialValue = ''
+                if column == 'From\nRelay Type' or column == 'To\nRelay Type':
+                    cell = QComboBox()
+                    cell.addItems(relayTypes)
+                elif column == 'Cable Type':
+                    cell = QComboBox()
+                    cell.addItems(cableTypes)
+                elif column == 'From\nDevice Number' or column == 'To\nDevice Number':
+                    cell = QComboBox()
+                    cell.addItems(deviceNumbers)
+                elif column == 'From\nPanel Number' or column == 'To\nPanel Number':
+                    cell = QComboBox()
+                    cell.addItems(panels)
+                elif column == 'From\nPort' or column == 'To\nPort':
+                    cell = QSpinBox()
+                elif column == 'Estimated Length':
+                    cell = QSpinBox()
+                    cell.setSuffix('ft')
+                else:
+                    cell = QComboBox()
+                    cell.addItem(cellInitialValue)
+                self.table.setCellWidget(rowIndex,columnIndex,cell)
+    
+
+        #self.setCentralWidget(self.table)
+        self.layout1 = QGridLayout()
+        self.layout1.addWidget(self.table)
+        self.setLayout(self.layout1)
+        
+    def closeEvent(self,event):
+        self.returnCableData()
+        
+
+    def returnCableData(self):
+        outputDictionary = [{}]
+        for rowIndex in range(self.table.rowCount()):
+            for columnIndex, column in enumerate(self.tableHeaders):
+                if column != 'Estimated Length' and column != 'From\nPort' and column != 'To\nPort':
+                    outputDictionary[rowIndex][column] = self.table.cellWidget(rowIndex,columnIndex).currentText()
+                else:
+                    outputDictionary[rowIndex][column] = self.table.cellWidget(rowIndex,columnIndex).value()
+            if rowIndex != self.table.rowCount()-1: # Don't append on last loop
+                outputDictionary.append({})
+        return outputDictionary
+
+            
+        
+
+
 #--------------------------------------------------------PDF SECTION----------------------------------------------------------------
 class NumberedPageCanvas(Canvas):
     """
@@ -674,7 +845,7 @@ class pdf:
         
         #Total column
         for rowIndex, row in enumerate(grid):
-            if '1 Lot' not in [i[0] for i in grid[rowIndex][1:]]:
+            if '1 Lot' not in [i for i in grid[rowIndex][1:]]:
                 tableData[rowIndex+3][2] = sum([int(i[0]) for i in grid[rowIndex][1:]])
             else:
                 tableData[rowIndex+3][2] = '1 Lot'
@@ -747,3 +918,4 @@ if  __name__ == "__main__":
     application = mainProgram(signals,masterMaterialList=masterList)
     application.show()
     sys.exit(app.exec())
+
