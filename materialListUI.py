@@ -11,20 +11,19 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfgen.canvas import Canvas
 import re
 import os
-import ntpath
 import csv
+from datetime import date
 
 
 def naturalSortKey(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(re.compile('([0-9]+)'), s)]
-
 
 class mainProgram(QMainWindow):
     def __init__(self, signalClass, masterMaterialList = {'':''}):
         super(mainProgram, self).__init__()
         self.masterMatList = masterMaterialList
         self.signals = signalClass
-        self.signals.signal1.connect(self.refreshCells)
+        self.signals.refreshCellDimensions.connect(self.refreshCells)
         self.signals.needsSaved.connect(self.needsSaved)
         self.itemNoFont = QtGui.QFont()
         self.itemNoFont.setBold(True)
@@ -101,7 +100,7 @@ class mainProgram(QMainWindow):
 
 
         #Initial Setup
-        self.buildMainWindow()
+        
         if self.newFile:
             data = self.buildNewMatlist()
         else:
@@ -119,7 +118,10 @@ class mainProgram(QMainWindow):
                 message.exec()
                 data = self.buildNewMatlist()
                 
+
+        self.buildMainWindow()
         self.cableData = data['cableData']
+        self.revisionHistory = data['revisions']
         self.getUniqueItemNumbers(data)
         self.buildInitialTable(data)
         self.buildRightDock()
@@ -142,15 +144,11 @@ class mainProgram(QMainWindow):
         minimumCableCount = 0 #Get this from loaded json file
         return(max(total,minimumCableCount))
     
-
     def showCableData(self):
-        pass
-        
         self.cableDataWindow1 = cableDataWindow(self.getNumberOfCables(), cableData=self.cableData, panels=self.columnHeaders[1:], deviceNumbers=self.getAllDeviceNames())
         self.cableDataWindow1.exec()
         self.cableData = self.cableDataWindow1.returnCableData()
         
-
     def renamePanel(self):
         newPanelName = QInputDialog()
         newPanelName.setWindowTitle("Rename Panel:")
@@ -198,9 +196,29 @@ class mainProgram(QMainWindow):
                 event.accept()
             else:
                 event.ignore()
-        else: 
+        else:
             event.accept()
 
+    def addRevisionInformation(self):
+        revisionMessage = QDialog()
+        revisionMessageLayout = QFormLayout()
+        revisionMessageLayout.addWidget(QLabel("Add Revision Information (Leave blank to Skip Revision Update):"))
+        description = QLineEdit()
+        description.setPlaceholderText("Description")
+        revisionMessageLayout.addWidget(description)
+        user = QLineEdit()
+        user.setPlaceholderText("User Initials")
+        revisionMessageLayout.addWidget(user)
+        okButton = QPushButton()
+        okButton.setText("Enter")
+        okButton.clicked.connect(revisionMessage.accept)
+        revisionMessageLayout.addWidget(okButton)
+        revisionMessage.setLayout(revisionMessageLayout)
+        revisionMessage.exec()
+        if self.revisionHistory[0] == {}:
+            self.revisionHistory.pop(0)
+        self.revisionHistory.append({'date':str(date.today()),'user':user.text(),'description':description.text()})
+            
     def refreshCells(self):
         self.tableWidget.resizeColumnsToContents()
         self.tableWidget.resizeRowsToContents()
@@ -213,7 +231,8 @@ class mainProgram(QMainWindow):
         self.xSize = int(self.monitorXSize*.8)
         self.ySize = int(self.monitorYSize*.8)
         self.setGeometry(QtCore.QRect(self.xShift,self.yShift,self.xSize,self.ySize))
-        self.setWindowTitle('Add Material to Contract')
+        filename = os.path.basename(self.matListFileName).split('.')[0]
+        self.setWindowTitle(f'{filename} Contract List')
 
     def addPanel(self):        
         self.columnHeaders.append(self.newPanelName.text())
@@ -237,6 +256,18 @@ class mainProgram(QMainWindow):
         #if type(input) == type(dict()):
         #data = {"Panel":{"item":{"count":'0',"names":[],"description":""}}}
         data = {}
+        data['cableData'] = [{"Item No.":'',
+                                    "Cable Type":'',
+                                    "Estimated Length":0,
+                                    "From\nRelay Type":'',
+                                    "From\nDevice Number":'',
+                                    "From\nPort":0,
+                                    "From\nPanel Number":'',
+                                    "To\nRelay Type":'',
+                                    "To\nDevice Number":'',
+                                    "To\nPort":0,
+                                    "To\nPanel Number":''}]
+        data['revisions'] = [{}]
         # for i in list(data.keys()):
         #     self.columnHeaders.append(i)
 
@@ -267,7 +298,7 @@ class mainProgram(QMainWindow):
 
 
         for i in list(data.keys()): 
-            if i != 'cableData':
+            if i != 'cableData' and i != 'revisions':
                 self.columnHeaders.append(i)
                 if i == 'Loose and Not Mounted':
                     self.loosePanelPresent = True
@@ -275,7 +306,7 @@ class mainProgram(QMainWindow):
 
     def getUniqueItemNumbers(self,data):
         for panel in data:
-            if panel != 'cableData':
+            if panel != 'cableData' and panel != 'revisions':
                 for item in data[panel]:
                     if item != 'description' and item not in self.uniqueItemNumbers:
                         self.uniqueItemNumbers.append(item)
@@ -340,6 +371,7 @@ class mainProgram(QMainWindow):
 
         self.addItemButton = QPushButton('Add Item: 0',clicked=self.addItem)
         self.printButton = QPushButton('Save',clicked=self.export)
+        self.revisionButton = QPushButton('Add Revision Information',clicked=self.addRevisionInformation)
         self.deleteRow = QPushButton(f'Delete Item: ',clicked=self.deleteItem)
         self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
@@ -361,6 +393,7 @@ class mainProgram(QMainWindow):
         self.dockLayout.addRow(self.addLooseButton)
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.printButton)
+        self.dockLayout.addRow(self.revisionButton)
         self.dockLayout.addItem(QSpacerItem(50,300))
         self.dockLayout.addRow(self.hintsButton)
         
@@ -390,7 +423,7 @@ class mainProgram(QMainWindow):
     def displayHints(self):
         hints = QMessageBox()
         hints.setWindowTitle('Hints')
-        hints.setText('Shortcuts:\n\'R\': Resize Cells to Fit Contents\n\'D\': Show Menu\n\'H\': Display Hints\nDouble-Click Cell: Show Item Description\nType: "<br/>" when entering data to force a new line')
+        hints.setText('Shortcuts:\n\'R\': Resize Cells to Fit Contents\n\'D\': Show Menu\n\'C\': Show Cable Data\n\'H\': Display Hints\nDouble-Click Cell: Show Item Description\nType: "<br/>" when entering data to force a new line')
         hints.exec()
 
     def deletePanel(self):
@@ -463,6 +496,7 @@ class mainProgram(QMainWindow):
                 #else:
                 #    self.outputDictionary[panel][item]['cables'] = 'N/A'
         self.outputDictionary['cableData'] = self.cableData
+        self.outputDictionary['revisions'] = self.revisionHistory
                     
     def saveJSONFile(self):
         self.developOutputDictionary()
@@ -506,7 +540,6 @@ class mainProgram(QMainWindow):
         else:
             self.deleteRow.setText(f'')
         self.saved = False
-
 
 class advancedCustomTableWidgetItem(QWidget):
     def __init__(self,signalClass, count=0,deviceNames=[], coordinates=()):
@@ -614,7 +647,7 @@ class advancedCustomTableWidgetItem(QWidget):
             while len(self.deviceNames) > 0:
                 self.removeDeviceNameSlot()
         
-        self.signals.signal1.emit()
+        self.signals.refreshCellDimensions.emit()
 
     def toggleDevices(self):
         if self.showDevices == True:
@@ -692,7 +725,7 @@ class firstColumnWidget(QWidget):
             self.deviceNames.setChecked(True)
         
 class signalClass(QWidget):
-    signal1 = QtCore.pyqtSignal()  
+    refreshCellDimensions = QtCore.pyqtSignal()  
     enableDeviceNames = QtCore.pyqtSignal(int)
     enableOneLot = QtCore.pyqtSignal(int)
     disableDeviceNames = QtCore.pyqtSignal(int)
@@ -732,6 +765,9 @@ class cableDataWindow(QDialog):
                 else: 
                     cellInitialValue = ''
 
+
+
+#---------------------------CLEAN THIS CRAP UP-----------------------------------------------------------
                 if column == 'From\nRelay Type' or column == 'To\nRelay Type':
                     cell = QComboBox()
                     cell.addItems(relayTypes)
@@ -769,7 +805,6 @@ class cableDataWindow(QDialog):
     def closeEvent(self,event):
         self.returnCableData()
         
-
     def returnCableData(self):
         outputDictionary = [{}]
         for rowIndex in range(self.table.rowCount()):
@@ -781,10 +816,6 @@ class cableDataWindow(QDialog):
             if rowIndex != self.table.rowCount()-1: # Don't append on last loop
                 outputDictionary.append({})
         return outputDictionary
-
-            
-        
-
 
 #--------------------------------------------------------PDF SECTION----------------------------------------------------------------
 class NumberedPageCanvas(Canvas):
@@ -828,7 +859,7 @@ class pdf:
         
 
         tableData = [['' for i in range(len(grid[0])+2)] for j in range(len(grid)+3)]
-        tableData[0][0] = ntpath.basename(headings[0]).split('.')[0] + " Material List"
+        tableData[0][0] = os.path.basename(headings[0]).split('.')[0] + " Material List"
         tableData[2][0] = headings[3]
         tableData[2][1] = headings[4]
         tableData[2][2] = 'Total'
