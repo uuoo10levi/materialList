@@ -37,7 +37,7 @@ class mainProgram(QMainWindow):
         self.cableDataShortcut = QShortcut(QtGui.QKeySequence(self.tr("C")),self)
         self.cableDataShortcut.activated.connect(self.showCableData)
         #self.deviceNames = QShortcut(QtGui.QKeySequence(self.tr("N")),self)
-        #self.deviceNames.activated.connect(self.getAllDeviceNames)
+        #self.deviceNames.activated.connect(self.getNumberOfCables)
         self.saved = False
         
         self.quit = QAction("Quit",self)
@@ -119,6 +119,7 @@ class mainProgram(QMainWindow):
                 message.exec()
                 data = self.buildNewMatlist()
                 
+        self.cableData = data['cableData']
         self.getUniqueItemNumbers(data)
         self.buildInitialTable(data)
         self.buildRightDock()
@@ -132,20 +133,23 @@ class mainProgram(QMainWindow):
                     deviceNames.append(deviceName.text())
         return deviceNames
     
+    def getNumberOfCables(self):
+        total = 0
+        for rowIndex, row in enumerate(self.uniqueItemNumbers):
+            if row[0] == '2' and len(row) >= 3:
+                for columnIndex, column in enumerate(self.columnHeaders[1:]):
+                    total += self.tableWidget.cellWidget(rowIndex,columnIndex+1).countSelect.value()
+        minimumCableCount = 0 #Get this from loaded json file
+        return(max(total,minimumCableCount))
+    
 
     def showCableData(self):
         pass
         
-        self.cableDataWindow1 = cableDataWindow(10, panels=self.columnHeaders[1:], deviceNumbers=self.getAllDeviceNames())
+        self.cableDataWindow1 = cableDataWindow(self.getNumberOfCables(), cableData=self.cableData, panels=self.columnHeaders[1:], deviceNumbers=self.getAllDeviceNames())
         self.cableDataWindow1.exec()
         self.cableData = self.cableDataWindow1.returnCableData()
-        #self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
-        #cableData = self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).cableData
-        #self.cableDataWindow1 = cableDataWindow(self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).countSelect.value(), 
-        #                                        cableData=cableData,
-        #                                        panels=self.columnHeaders[1:]
-        #                                        )
-        #self.cableDataWindow1.show()
+        
 
     def renamePanel(self):
         newPanelName = QInputDialog()
@@ -727,6 +731,7 @@ class cableDataWindow(QDialog):
                     cellInitialValue = cableData[rowIndex][column]
                 else: 
                     cellInitialValue = ''
+
                 if column == 'From\nRelay Type' or column == 'To\nRelay Type':
                     cell = QComboBox()
                     cell.addItems(relayTypes)
@@ -746,7 +751,13 @@ class cableDataWindow(QDialog):
                     cell.setSuffix('ft')
                 else:
                     cell = QComboBox()
+                
+                try:
                     cell.addItem(cellInitialValue)
+                    cell.setCurrentText(cellInitialValue)
+                except:
+                    cell.setValue(int(cellInitialValue))
+                
                 self.table.setCellWidget(rowIndex,columnIndex,cell)
     
 
