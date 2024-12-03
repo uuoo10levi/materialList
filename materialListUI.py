@@ -721,29 +721,109 @@ class mainProgram(QMainWindow):
         {'|Panel|':{'description':'|panel description|','|item number|':{'count':'|count|','names':'|[names]|','description':'|item description|'}}}'''
     
     def makePDF(self):
-        headings = [self.matListFileName]
-        headings.append('')
-        headings.append('QUANTITY/DEVICE NO.')
-        headings.append('ITEM NO.')
-        headings.append('EQUIPMENT DESCRIPTION')
-        headings.append('Total')
+        headings = [self.matListFileName, '', 'QUANTITY/DEVICE NO.', 'ITEM NO.','EQUIPMENT DESCRIPTION','Total']
         for i in self.columnHeaders[1:]:
             headings.append(i)
 
-        grid = [['' for j in range(self.tableWidget.columnCount())] for i in range(self.tableWidget.rowCount())]
+        matListData = [['' for j in range(self.tableWidget.columnCount())] for i in range(self.tableWidget.rowCount())]
 
         for row in range(self.tableWidget.rowCount()):
             for column in range(self.tableWidget.columnCount()):
                 if column != 0:
                     if not self.tableWidget.cellWidget(row,column).oneLotSelected:
-                        grid[row][column] = [self.tableWidget.cellWidget(row,column).countSelect.value(),[i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames]]
+                        matListData[row][column] = [self.tableWidget.cellWidget(row,column).countSelect.value(),[i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames]]
                     else:
-                        grid[row][column] = '1 Lot'
+                        matListData[row][column] = '1 Lot'
                 if column == 0:
-                    grid[row][column] = self.tableWidget.cellWidget(row,column).text
+                    matListData[row][column] = self.tableWidget.cellWidget(row,column).text
 
-        self.pdf = pdf(masterMatList=self.masterMatList,grid=grid,headings=headings,name=self.pdfFileName)
-        #self.pdf.exportPDF()
+
+
+        tableData = [['' for i in range(len(matListData[0])+2)] for j in range(len(matListData)+3)]
+        tableData[0][0] = os.path.basename(headings[0]).split('.')[0] + " Material List"
+        tableData[2][0] = headings[3]
+        tableData[2][1] = headings[4]
+        tableData[2][2] = 'Total'
+        for index, heading in enumerate(headings[5:]):
+            tableData[2][index+2] = heading
+        #Item numbers, and per panel counts/device names
+        for rowIndex, row in enumerate(matListData):
+            for columnIndex, cell in enumerate(row):
+                if columnIndex != 0:
+                    if cell != '1 Lot':
+                        tempCell = str(cell[0])
+                        for i in cell[1]:
+                            tempCell = tempCell + '<br/>' + i
+                    else:
+                        tempCell = '1 Lot'
+                    tableData[rowIndex+3][columnIndex+2] = tempCell
+                if columnIndex == 0:
+                    tableData[rowIndex+3][columnIndex] = cell
+        #Descriptions
+        for rowIndex, row in enumerate(tableData):
+            if rowIndex > 2:
+                tableData[rowIndex][1] = self.masterMatList[row[0]]
+        #Total column
+        for rowIndex, row in enumerate(matListData):
+            if '1 Lot' not in [i for i in matListData[rowIndex][1:]]:
+                tableData[rowIndex+3][2] = sum([int(i[0]) for i in matListData[rowIndex][1:]])
+            else:
+                tableData[rowIndex+3][2] = '1 Lot'
+        if len(tableData[0][2:]) > 4:
+            pageWidth = 11
+            pageHeight = 8.5
+        if len(tableData[0][2:]) > 8:
+            pageWidth = 17
+            pageHeight = 11
+        styleSheet = getSampleStyleSheet()
+        pagesize = (pageWidth * inch, pageHeight * inch)
+        styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=styleSheet['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
+        styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=styleSheet['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
+        doc = SimpleDocTemplate(self.pdfFileName, pagesize=pagesize)
+        elements = []
+        # headings = ['Document Title','Item Number', 'Description', 'Total', 'Panel 1', 'Panel 2', 'Panel 3', etc]
+        width = pageWidth*inch
+        colWidths = [50,100,50]
+        for i in tableData[0][2:]:
+            colWidths.append((width-200)/len(tableData[0][2:]))
+        #Format cells
+        tableData[2][1] = Paragraph(str(tableData[2][1]),styleCustomCenterJustified) #"Description" cell
+        for i in range(len(tableData)):
+            for j in range(len(tableData[i])):
+                if j != 1:
+                    tableData[i][j] = Paragraph(str(tableData[i][j]), styleCustomCenterJustified) #Item description cells
+        for i in range(len(tableData)):
+            if i > 2:
+                tableData[i][1] = Paragraph(str(tableData[i][1]), styleCustomLeftJustified) #'Count' cells
+        matlistTable = Table(tableData, colWidths=colWidths, repeatRows=3, style=[
+            ('GRID',(0,0),(-1,-1),0.5,colors.black),
+            ('SPAN', (0,0), (-1, 0)),
+            ('SPAN', (0,1), (1, 1)),
+            ('SPAN', (2,1), (-1, 1)),
+            ('ALIGN',(0,0),(-1,-1),'CENTER'),
+            ('VALIGN',(0,0),(-1,-1),'TOP')])
+        elements.append(matlistTable)
+        # cableTable = Table(tableData, colWidths=colWidths, style=[
+        #     ('GRID',(0,0),(-1,-1),0.5,colors.black),
+        #     ('SPAN', (0,0), (-1, 0)),
+        #     ('SPAN', (0,1), (1, 1)),
+        #     ('SPAN', (2,1), (-1, 1)),
+        #     ('ALIGN',(0,0),(-1,-1),'CENTER'),
+        #     ('VALIGN',(0,0),(-1,-1),'TOP')])
+        # elements.append(cableTable)
+        doc.__setattr__('topMargin', 0.25*inch)
+        doc.__setattr__('leftMargin', 0.25*inch)
+        doc.__setattr__('rightMargin', 0.25*inch)
+        doc.__setattr__('bottomMargin', 0.25*inch)
+        doc.build(elements, canvasmaker=NumberedPageCanvas)
+
+
+
+
+
+
+
+
 
     def deleteItem(self):
         if len(self.uniqueItemNumbers) > 0:
@@ -984,104 +1064,6 @@ class NumberedPageCanvas(Canvas):
     def draw_rev_number(self):
         self.setFont("Helvetica", 8)
         self.drawString(0.25 * inch, 0.25 * inch, 'Rev. 0')
-
-class pdf:
-    def __init__(self, masterMatList = {}, grid=[], headings=[], name = '_.pdf', pageWidth = 8.5, pageHeight = 11):
-        tableData = [['' for i in range(len(grid[0])+2)] for j in range(len(grid)+3)]
-        tableData[0][0] = os.path.basename(headings[0]).split('.')[0] + " Material List"
-        tableData[2][0] = headings[3]
-        tableData[2][1] = headings[4]
-        tableData[2][2] = 'Total'
-        
-        for index, heading in enumerate(headings[5:]):
-            tableData[2][index+2] = heading
-        #Item numbers, and per panel counts/device names
-        for rowIndex, row in enumerate(grid):
-            for columnIndex, cell in enumerate(row):
-                if columnIndex != 0:
-                    if cell != '1 Lot':
-                        tempCell = str(cell[0])
-                        for i in cell[1]:
-                            tempCell = tempCell + '<br/>' + i
-                    else:
-                        tempCell = '1 Lot'
-                    tableData[rowIndex+3][columnIndex+2] = tempCell
-                if columnIndex == 0:
-                    tableData[rowIndex+3][columnIndex] = cell
-        #Descriptions
-        for rowIndex, row in enumerate(tableData):
-            if rowIndex > 2:
-                tableData[rowIndex][1] = masterMatList[row[0]]
-        #Total column
-        for rowIndex, row in enumerate(grid):
-            if '1 Lot' not in [i for i in grid[rowIndex][1:]]:
-                tableData[rowIndex+3][2] = sum([int(i[0]) for i in grid[rowIndex][1:]])
-            else:
-                tableData[rowIndex+3][2] = '1 Lot'
-
-
-
-        if len(tableData[0][2:]) > 4:
-            pageWidth = 11
-            pageHeight = 8.5
-        if len(tableData[0][2:]) > 8:
-            pageWidth = 17
-            pageHeight = 11
-
-
-        self.styleSheet = getSampleStyleSheet()
-        self.pagesize = (pageWidth * inch, pageHeight * inch)
-        self.styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=self.styleSheet['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
-        self.styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=self.styleSheet['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
-        self.doc = SimpleDocTemplate(name, pagesize=self.pagesize)
-        
-
-        self.elements = []
-        # headings = ['Document Title','Item Number', 'Description', 'Total', 'Panel 1', 'Panel 2', 'Panel 3', etc]
-        width = pageWidth*inch
-        colWidths = [50,100,50]
-        for i in tableData[0][2:]:
-            colWidths.append((width-200)/len(tableData[0][2:]))
-
-        #Format cells
-        tableData[2][1] = Paragraph(str(tableData[2][1]),self.styleCustomCenterJustified) #"Description" cell
-        for i in range(len(tableData)):
-            for j in range(len(tableData[i])):
-                if j != 1:
-                    tableData[i][j] = Paragraph(str(tableData[i][j]), self.styleCustomCenterJustified) #Item description cells
-        for i in range(len(tableData)):
-            if i > 2:
-                tableData[i][1] = Paragraph(str(tableData[i][1]), self.styleCustomLeftJustified) #'Count' cells
-
-
-
-        self.matlistTable = Table(tableData, colWidths=colWidths, repeatRows=3, style=[
-            ('GRID',(0,0),(-1,-1),0.5,colors.black),
-            ('SPAN', (0,0), (-1, 0)),
-            ('SPAN', (0,1), (1, 1)),
-            ('SPAN', (2,1), (-1, 1)),
-            ('ALIGN',(0,0),(-1,-1),'CENTER'),
-            ('VALIGN',(0,0),(-1,-1),'TOP')])
-                              
-        self.elements.append(self.matlistTable)
-
-        # self.cableTable = Table(tableData, colWidths=colWidths, style=[
-        #     ('GRID',(0,0),(-1,-1),0.5,colors.black),
-        #     ('SPAN', (0,0), (-1, 0)),
-        #     ('SPAN', (0,1), (1, 1)),
-        #     ('SPAN', (2,1), (-1, 1)),
-        #     ('ALIGN',(0,0),(-1,-1),'CENTER'),
-        #     ('VALIGN',(0,0),(-1,-1),'TOP')])
-        
-        # self.elements.append(self.cableTable)
-
-        self.doc.__setattr__('topMargin', 0.25*inch)
-        self.doc.__setattr__('leftMargin', 0.25*inch)
-        self.doc.__setattr__('rightMargin', 0.25*inch)
-        self.doc.__setattr__('bottomMargin', 0.25*inch)
-        
-        
-        self.doc.build(self.elements, canvasmaker=NumberedPageCanvas)
 
 if  __name__ == "__main__":
     app = QApplication(sys.argv)
