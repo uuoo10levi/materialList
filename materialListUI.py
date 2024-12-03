@@ -18,6 +18,150 @@ from datetime import date
 def naturalSortKey(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(re.compile('([0-9]+)'), s)]
 
+class cableWindow(QMainWindow):
+    def __init__(self, signals, cableData: dict = {"Item No.": [],
+                                    "Cable Type": [],
+                                    "Estimated Length": [],
+                                    "From\nRelay Type": [],
+                                    "From\nDevice Number": [],
+                                    "From\nPort": [],
+                                    "From\nPanel Number": [],
+                                    "To\nRelay Type": [],
+                                    "To\nDevice Number": [],
+                                    "To\nPort": [],
+                                    "To\nPanel Number": []
+                                    }, 
+                        availableItemNumbers = [],
+                        availableCableTypes = [],
+                        availableRelayTypes = [],
+                        availableDeviceNumbers = [],
+                        availablePanelNumbers = [],
+                        ):
+        super(cableWindow,self).__init__()
+        self.cableData = cableData
+        self.availableItemNumbers = availableItemNumbers
+        self.availableCableTypes = availableCableTypes
+        self.availableRelayTypes = availableRelayTypes
+        self.availableDeviceNumbers = availableDeviceNumbers
+        self.availablePanelNumbers = availablePanelNumbers
+        self.signals = signals
+
+        #--------------------------------------------------------------------
+        #This section should never matter if cableData is entered correctly
+        maxLength = max([len(self.cableData[key]) for key in self.cableData.keys()])
+        for column in self.cableData.keys():
+            for i in range(maxLength-len(self.cableData[column])):
+                self.cableData[column].append(0)
+        #--------------------------------------------------------------------
+        
+
+
+        self.monitor = get_monitors()
+        self.monitorXSize = int(self.monitor[0].width)
+        self.monitorYSize = int(self.monitor[0].height)
+        self.xShift = int(self.monitorXSize*.1)
+        self.yShift = int(self.monitorYSize*.1)
+        self.xSize = int(self.monitorXSize*.8)
+        self.ySize = int(self.monitorYSize*.8)
+        self.setGeometry(QtCore.QRect(self.xShift,self.yShift,self.xSize,self.ySize))
+        self.setWindowTitle('Cable List')
+
+
+
+
+        
+        self.cableTable = QTableWidget()
+        self.dockMenuButtonAddCable = QPushButton()
+        self.dockMenuButtonRemoveCable = QPushButton()
+        self.printOutput = QPushButton()
+        self.dockMenuLayout = QFormLayout()
+        self.dockMenuWidget = QWidget()
+        self.dockMenu = QDockWidget()
+
+        #self.printOutput.setText('Save')
+        #self.printOutput.clicked.connect(self.developOutputDictionary)
+        self.dockMenuButtonAddCable.setText('Add Cable')
+        self.dockMenuButtonAddCable.clicked.connect(self.addCable)
+        self.dockMenuButtonRemoveCable.setText('Remove Currently Selected Cable')
+        self.dockMenuButtonRemoveCable.clicked.connect(self.removeCable)
+        self.dockMenuLayout.addRow(self.dockMenuButtonAddCable)
+        self.dockMenuLayout.addRow(self.dockMenuButtonRemoveCable)
+        #self.dockMenuLayout.addRow(self.printOutput)
+        self.cableTable.setColumnCount(len(self.cableData))
+        self.fillTable()
+
+
+        self.cableTable.setHorizontalHeaderLabels(self.cableData.keys())
+        self.cableTable.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+
+
+        self.dockMenuWidget.setLayout(self.dockMenuLayout)
+        self.dockMenu.setWidget(self.dockMenuWidget)
+        self.setCentralWidget(self.cableTable)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dockMenu)
+
+    def determineItemType(self, column, defaultValue = '0'):
+        if column == 'Item No.':
+            item = QComboBox()
+            item.addItems(self.availableItemNumbers)
+            item.setCurrentText(defaultValue)
+        elif column == 'Cable Type':
+            item = QComboBox()
+            item.addItems(self.availableCableTypes)
+            item.setCurrentText(defaultValue)
+        elif column == 'Estimated Length':
+            item = QSpinBox()
+            item.setValue(int(defaultValue))
+        elif column == 'From\nRelay Type' or column == 'To\nRelay Type':
+            item = QComboBox()
+            item.addItems(self.availableRelayTypes)
+            item.setCurrentText(defaultValue)
+        elif column == 'From\nDevice Number' or column == 'To\nDevice Number':
+            item = QComboBox()
+            item.addItems(self.availableDeviceNumbers)
+            item.setCurrentText(defaultValue)
+        elif column == 'From\nPort' or column == 'To\nPort':
+            item = QSpinBox()
+            item.setValue(int(defaultValue))
+        elif column == 'From\nPanel Number' or column == 'To\nPanel Number':
+            item = QComboBox()
+            item.addItems(self.availablePanelNumbers)
+            item.setCurrentText(defaultValue)
+        
+        return item
+
+
+    def fillTable(self):
+        for rowIndex, row in enumerate(self.cableData['Item No.']):
+            self.cableTable.insertRow(self.cableTable.rowCount())
+            for columnIndex, column in enumerate(self.cableData.keys()):
+                item = self.determineItemType(column, defaultValue=self.cableData[column][rowIndex])
+                self.cableTable.setCellWidget(self.cableTable.rowCount()-1,columnIndex,item)
+
+
+    def addCable(self):
+        self.cableTable.insertRow(self.cableTable.rowCount())
+        for columnIndex, column in enumerate(self.cableData.keys()):
+            item = self.determineItemType(column)
+            self.cableTable.setCellWidget(self.cableTable.rowCount()-1,columnIndex,item)
+
+    def removeCable(self):
+        self.cableTable.removeRow(self.cableTable.currentRow())
+
+    def developOutputDictionary(self):
+        for key in self.cableData.keys():
+            self.cableData[key] = []
+        for rowIndex in range(self.cableTable.rowCount()):
+            for columnIndex, column in enumerate(self.cableData.keys()):
+                try:
+                    self.cableData[column].append(str(self.cableTable.cellWidget(rowIndex,columnIndex).value()))
+                except:
+                    self.cableData[column].append(self.cableTable.cellWidget(rowIndex,columnIndex).currentText())
+
+    def closeEvent(self,event):
+        self.developOutputDictionary()
+        self.signals.saveCableData.emit()
+
 class mainProgram(QMainWindow):
     def __init__(self, signalClass, masterMaterialList = {'':''}):
         super(mainProgram, self).__init__()
@@ -25,6 +169,7 @@ class mainProgram(QMainWindow):
         self.signals = signalClass
         self.signals.refreshCellDimensions.connect(self.refreshCells)
         self.signals.needsSaved.connect(self.needsSaved)
+        self.signals.saveCableData.connect(self.saveCableData)
         self.itemNoFont = QtGui.QFont()
         self.itemNoFont.setBold(True)
         self.refreshCellsShortcut = QShortcut(QtGui.QKeySequence(self.tr("R")),self)
@@ -33,8 +178,8 @@ class mainProgram(QMainWindow):
         self.refreshDockShortcut.activated.connect(self.buildRightDock)
         self.helpShortcut = QShortcut(QtGui.QKeySequence(self.tr("H")),self)
         self.helpShortcut.activated.connect(self.displayHints)
-        self.cableDataShortcut = QShortcut(QtGui.QKeySequence(self.tr("C")),self)
-        self.cableDataShortcut.activated.connect(self.showCableData)
+        #self.cableDataShortcut = QShortcut(QtGui.QKeySequence(self.tr("C")),self)
+        #self.cableDataShortcut.activated.connect(self.showCableData)
         #self.deviceNames = QShortcut(QtGui.QKeySequence(self.tr("N")),self)
         #self.deviceNames.activated.connect(self.getNumberOfCables)
         self.saved = False
@@ -145,9 +290,14 @@ class mainProgram(QMainWindow):
         return(max(total,minimumCableCount))
     
     def showCableData(self):
-        self.cableDataWindow1 = cableDataWindow(self.getNumberOfCables(), cableData=self.cableData, panels=self.columnHeaders[1:], deviceNumbers=self.getAllDeviceNames())
-        self.cableDataWindow1.exec()
-        self.cableData = self.cableDataWindow1.returnCableData()
+        self.cableDataWindow1 = cableWindow(self.signals, self.cableData)
+        self.cableDataWindow1.show()
+        #self.saved = False
+
+    def saveCableData(self):
+        self.cableData = self.cableDataWindow1.cableData
+        self.saved = False
+        #self.export()
         
     def renamePanel(self):
         newPanelName = QInputDialog()
@@ -256,17 +406,17 @@ class mainProgram(QMainWindow):
         #if type(input) == type(dict()):
         #data = {"Panel":{"item":{"count":'0',"names":[],"description":""}}}
         data = {}
-        data['cableData'] = [{"Item No.":'',
-                                    "Cable Type":'',
-                                    "Estimated Length":0,
-                                    "From\nRelay Type":'',
-                                    "From\nDevice Number":'',
-                                    "From\nPort":0,
-                                    "From\nPanel Number":'',
-                                    "To\nRelay Type":'',
-                                    "To\nDevice Number":'',
-                                    "To\nPort":0,
-                                    "To\nPanel Number":''}]
+        data['cableData'] = {"Item No.":[],
+                                "Cable Type":[],
+                                "Estimated Length":[],
+                                "From\nRelay Type":[],
+                                "From\nDevice Number":[],
+                                "From\nPort":[],
+                                "From\nPanel Number":[],
+                                "To\nRelay Type":[],
+                                "To\nDevice Number":[],
+                                "To\nPort":[],
+                                "To\nPanel Number":[]}
         data['revisions'] = [{}]
         # for i in list(data.keys()):
         #     self.columnHeaders.append(i)
@@ -380,6 +530,7 @@ class mainProgram(QMainWindow):
         self.hintsButton = QPushButton('Hints',clicked=self.displayHints)
         self.renamePanelButton = QPushButton('Rename Panel',clicked=self.renamePanel)
         self.addLooseButton = QPushButton('Add "Loose and Not Mounted"',clicked=self.addLoose)
+        self.cableDataWindowButton = QPushButton('Show Cable Window', clicked=self.showCableData)
 
         self.dockLayout = QFormLayout()
         self.dockLayout.addRow(self.dockItemSelect)
@@ -391,6 +542,8 @@ class mainProgram(QMainWindow):
         self.dockLayout.addRow(self.renamePanelButton)
         self.dockLayout.addRow(self.deletePanelButton)
         self.dockLayout.addRow(self.addLooseButton)
+        self.dockLayout.addItem(QSpacerItem(50,50))
+        self.dockLayout.addRow(self.cableDataWindowButton)
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.printButton)
         self.dockLayout.addRow(self.revisionButton)
@@ -528,8 +681,8 @@ class mainProgram(QMainWindow):
                 if column == 0:
                     grid[row][column] = self.tableWidget.cellWidget(row,column).text
 
-        self.pdf = pdf(masterMatList = self.masterMatList,grid=grid,headings = headings,name=self.pdfFileName)
-        self.pdf.exportPDF()
+        self.pdf = pdf(masterMatList=self.masterMatList,grid=grid,headings=headings,name=self.pdfFileName)
+        #self.pdf.exportPDF()
 
     def deleteItem(self):
         if len(self.uniqueItemNumbers) > 0:
@@ -560,15 +713,15 @@ class advancedCustomTableWidgetItem(QWidget):
         #List of dictionaries for cable data
         #One dictionary entry per cable
         #Add button to show new window with table that has one row per cable in cell
-        self.cableData = [{"From Relay Type":'',
-                          "From Device Number":'',
-                          "From Port":'',
-                          "From Panel Number":'',
-                          "To Relay Type":'',
-                          "To Device Number":'',
-                          "To Port":'',
-                          "To Panel Number":'',
-                          'Estimated Length':''}]
+        # self.cableData = [{"From Relay Type":'',
+        #                   "From Device Number":'',
+        #                   "From Port":'',
+        #                   "From Panel Number":'',
+        #                   "To Relay Type":'',
+        #                   "To Device Number":'',
+        #                   "To Port":'',
+        #                   "To Panel Number":'',
+        #                   'Estimated Length':''}]
         
 
         self.deviceNames = [QLineEdit() for i in deviceNames]
@@ -733,89 +886,8 @@ class signalClass(QWidget):
     checkDeviceNames = QtCore.pyqtSignal(int)
     checkOneLot = QtCore.pyqtSignal(int)
     needsSaved = QtCore.pyqtSignal(bool)
+    saveCableData = QtCore.pyqtSignal()
 
-class cableDataWindow(QDialog):
-    def __init__(self, cableCount, cableData = [{"Item No.":'',
-                                    "Cable Type":'',
-                                    "Estimated Length":'',
-                                    "From\nRelay Type":'',
-                                    "From\nDevice Number":'',
-                                    "From\nPort":'',
-                                    "From\nPanel Number":'',
-                                    "To\nRelay Type":'',
-                                    "To\nDevice Number":'',
-                                    "To\nPort":'',
-                                    "To\nPanel Number":''}], 
-                                    cableTypes = ['No Available Cable Types'],
-                                    relayTypes = ['No Available Relay Types'], 
-                                    deviceNumbers = ['No Available Device Numbers'], 
-                                    panels = ['No Available Panel Numbers']):
-        QMainWindow.__init__(self)
-        self.setMinimumSize(1500,500)
-        self.setWindowTitle('Cable Summary')
-        self.table = QTableWidget()
-        self.tableHeaders = list(cableData[0].keys())
-        self.table.setRowCount(cableCount)
-        self.table.setColumnCount(len(self.tableHeaders))
-        self.table.setHorizontalHeaderLabels(self.tableHeaders)
-        for rowIndex in range(cableCount):
-            for columnIndex, column in enumerate(self.tableHeaders):
-                if len(cableData) > rowIndex:
-                    cellInitialValue = cableData[rowIndex][column]
-                else: 
-                    cellInitialValue = ''
-
-
-
-#---------------------------CLEAN THIS CRAP UP-----------------------------------------------------------
-                if column == 'From\nRelay Type' or column == 'To\nRelay Type':
-                    cell = QComboBox()
-                    cell.addItems(relayTypes)
-                elif column == 'Cable Type':
-                    cell = QComboBox()
-                    cell.addItems(cableTypes)
-                elif column == 'From\nDevice Number' or column == 'To\nDevice Number':
-                    cell = QComboBox()
-                    cell.addItems(deviceNumbers)
-                elif column == 'From\nPanel Number' or column == 'To\nPanel Number':
-                    cell = QComboBox()
-                    cell.addItems(panels)
-                elif column == 'From\nPort' or column == 'To\nPort':
-                    cell = QSpinBox()
-                elif column == 'Estimated Length':
-                    cell = QSpinBox()
-                    cell.setSuffix('ft')
-                else:
-                    cell = QComboBox()
-                
-                try:
-                    cell.addItem(cellInitialValue)
-                    cell.setCurrentText(cellInitialValue)
-                except:
-                    cell.setValue(int(cellInitialValue))
-                
-                self.table.setCellWidget(rowIndex,columnIndex,cell)
-    
-
-        #self.setCentralWidget(self.table)
-        self.layout1 = QGridLayout()
-        self.layout1.addWidget(self.table)
-        self.setLayout(self.layout1)
-        
-    def closeEvent(self,event):
-        self.returnCableData()
-        
-    def returnCableData(self):
-        outputDictionary = [{}]
-        for rowIndex in range(self.table.rowCount()):
-            for columnIndex, column in enumerate(self.tableHeaders):
-                if column != 'Estimated Length' and column != 'From\nPort' and column != 'To\nPort':
-                    outputDictionary[rowIndex][column] = self.table.cellWidget(rowIndex,columnIndex).currentText()
-                else:
-                    outputDictionary[rowIndex][column] = self.table.cellWidget(rowIndex,columnIndex).value()
-            if rowIndex != self.table.rowCount()-1: # Don't append on last loop
-                outputDictionary.append({})
-        return outputDictionary
 
 #--------------------------------------------------------PDF SECTION----------------------------------------------------------------
 class NumberedPageCanvas(Canvas):
@@ -853,11 +925,6 @@ class NumberedPageCanvas(Canvas):
 
 class pdf:
     def __init__(self, masterMatList = {}, grid=[], headings=[], name = '_.pdf', pageWidth = 8.5, pageHeight = 11):
-        #print(grid)
-        
-        
-        
-
         tableData = [['' for i in range(len(grid[0])+2)] for j in range(len(grid)+3)]
         tableData[0][0] = os.path.basename(headings[0]).split('.')[0] + " Material List"
         tableData[2][0] = headings[3]
@@ -866,7 +933,6 @@ class pdf:
         
         for index, heading in enumerate(headings[5:]):
             tableData[2][index+2] = heading
-
         #Item numbers, and per panel counts/device names
         for rowIndex, row in enumerate(grid):
             for columnIndex, cell in enumerate(row):
@@ -884,7 +950,6 @@ class pdf:
         for rowIndex, row in enumerate(tableData):
             if rowIndex > 2:
                 tableData[rowIndex][1] = masterMatList[row[0]]
-        
         #Total column
         for rowIndex, row in enumerate(grid):
             if '1 Lot' not in [i for i in grid[rowIndex][1:]]:
@@ -897,7 +962,6 @@ class pdf:
         if len(tableData[0][2:]) > 4:
             pageWidth = 11
             pageHeight = 8.5
-
         if len(tableData[0][2:]) > 8:
             pageWidth = 17
             pageHeight = 11
@@ -910,16 +974,12 @@ class pdf:
         self.doc = SimpleDocTemplate(name, pagesize=self.pagesize)
         
 
-
-
-
         self.elements = []
         # headings = ['Document Title','Item Number', 'Description', 'Total', 'Panel 1', 'Panel 2', 'Panel 3', etc]
         width = pageWidth*inch
         colWidths = [50,100,50]
         for i in tableData[0][2:]:
             colWidths.append((width-200)/len(tableData[0][2:]))
-
 
         #Format cells
         tableData[2][1] = Paragraph(str(tableData[2][1]),self.styleCustomCenterJustified) #"Description" cell
@@ -933,17 +993,26 @@ class pdf:
 
 
 
-        self.pdftable = Table(tableData, colWidths=colWidths, repeatRows=3, style=[
+        self.matlistTable = Table(tableData, colWidths=colWidths, repeatRows=3, style=[
             ('GRID',(0,0),(-1,-1),0.5,colors.black),
             ('SPAN', (0,0), (-1, 0)),
             ('SPAN', (0,1), (1, 1)),
             ('SPAN', (2,1), (-1, 1)),
             ('ALIGN',(0,0),(-1,-1),'CENTER'),
-            ('VALIGN',(0,0),(-1,-1),'TOP')]
-                              )
-        self.elements.append(self.pdftable)
+            ('VALIGN',(0,0),(-1,-1),'TOP')])
+                              
+        self.elements.append(self.matlistTable)
 
-    def exportPDF(self):
+        # self.cableTable = Table(tableData, colWidths=colWidths, style=[
+        #     ('GRID',(0,0),(-1,-1),0.5,colors.black),
+        #     ('SPAN', (0,0), (-1, 0)),
+        #     ('SPAN', (0,1), (1, 1)),
+        #     ('SPAN', (2,1), (-1, 1)),
+        #     ('ALIGN',(0,0),(-1,-1),'CENTER'),
+        #     ('VALIGN',(0,0),(-1,-1),'TOP')])
+        
+        # self.elements.append(self.cableTable)
+
         self.doc.__setattr__('topMargin', 0.25*inch)
         self.doc.__setattr__('leftMargin', 0.25*inch)
         self.doc.__setattr__('rightMargin', 0.25*inch)
