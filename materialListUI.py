@@ -18,6 +18,79 @@ from datetime import date
 def naturalSortKey(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(re.compile('([0-9]+)'), s)]
 
+class revisionWindow(QMainWindow):
+    def __init__(self, signals, revisionData: dict = {"date":[],"user":[],"description":[]}):
+        super(revisionWindow,self).__init__()
+        print(revisionData)
+        self.signals = signals
+        self.revisionData = revisionData
+
+        self.monitor = get_monitors()
+        self.monitorXSize = int(self.monitor[0].width)
+        self.monitorYSize = int(self.monitor[0].height)
+        self.xShift = int(self.monitorXSize*.1)
+        self.yShift = int(self.monitorYSize*.1)
+        self.xSize = int(self.monitorXSize*.8)
+        self.ySize = int(self.monitorYSize*.8)
+        self.setGeometry(QtCore.QRect(self.xShift,self.yShift,self.xSize,self.ySize))
+        self.setWindowTitle('Cable List')
+
+        self.revisionTable = QTableWidget()
+        self.dockMenuButtonAddRevision = QPushButton()
+        self.dockMenuButtonRemoveRevision = QPushButton()
+        self.printOutput = QPushButton()
+        self.dockMenuLayout = QFormLayout()
+        self.dockMenuWidget = QWidget()
+        self.dockMenu = QDockWidget()
+
+
+        self.dockMenuButtonAddRevision.setText('Add Revision')
+        self.dockMenuButtonAddRevision.clicked.connect(self.addRevision)
+        self.dockMenuButtonRemoveRevision.setText('Remove Currently Selected Revision')
+        self.dockMenuButtonRemoveRevision.clicked.connect(self.removeRevision)
+        self.dockMenuLayout.addRow(self.dockMenuButtonAddRevision)
+        self.dockMenuLayout.addRow(self.dockMenuButtonRemoveRevision)
+        #self.dockMenuLayout.addRow(self.printOutput)
+        self.revisionTable.setColumnCount(len(self.revisionData))
+
+        self.revisionTable.setHorizontalHeaderLabels(self.revisionData.keys())
+        self.revisionTable.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+
+
+        self.dockMenuWidget.setLayout(self.dockMenuLayout)
+        self.dockMenu.setWidget(self.dockMenuWidget)
+        self.setCentralWidget(self.revisionTable)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dockMenu)
+        self.fillTable()
+
+    def fillTable(self):
+        for rowIndex, row in enumerate(self.revisionData['date']):
+            self.revisionTable.insertRow(self.revisionTable.rowCount())
+            for columnIndex, column in enumerate(self.revisionData.keys()):
+                item = QTableWidgetItem()
+                item.setText(self.revisionData[column][rowIndex])
+                self.revisionTable.setItem(self.revisionTable.rowCount()-1,columnIndex,item)
+
+    def addRevision(self):
+        self.revisionTable.insertRow(self.revisionTable.rowCount())
+        for columnIndex, column in enumerate(self.revisionData.keys()):
+            item = QTableWidgetItem()
+            self.revisionTable.setItem(self.revisionTable.rowCount()-1,columnIndex,item)
+
+    def removeRevision(self):
+        self.revisionTable.removeRow(self.revisionTable.currentRow())
+
+    def closeEvent(self,event):
+        self.developOutputDictionary()
+        self.signals.saveRevisionData.emit()
+
+    def developOutputDictionary(self):
+        for key in self.revisionData.keys():
+            self.revisionData[key] = []
+        for rowIndex in range(self.revisionTable.rowCount()):
+            for columnIndex, column in enumerate(self.revisionData.keys()):
+                self.revisionData[column].append(self.revisionTable.item(rowIndex, columnIndex).text())
+
 class cableWindow(QMainWindow):
     def __init__(self, signals, cableData: dict = {"Item No.": [],
                                     "Cable Type": [],
@@ -130,14 +203,12 @@ class cableWindow(QMainWindow):
         
         return item
 
-
     def fillTable(self):
         for rowIndex, row in enumerate(self.cableData['Item No.']):
             self.cableTable.insertRow(self.cableTable.rowCount())
             for columnIndex, column in enumerate(self.cableData.keys()):
                 item = self.determineItemType(column, defaultValue=self.cableData[column][rowIndex])
                 self.cableTable.setCellWidget(self.cableTable.rowCount()-1,columnIndex,item)
-
 
     def addCable(self):
         self.cableTable.insertRow(self.cableTable.rowCount())
@@ -170,6 +241,7 @@ class mainProgram(QMainWindow):
         self.signals.refreshCellDimensions.connect(self.refreshCells)
         self.signals.needsSaved.connect(self.needsSaved)
         self.signals.saveCableData.connect(self.saveCableData)
+        self.signals.saveRevisionData.connect(self.saveRevisionData)
         self.itemNoFont = QtGui.QFont()
         self.itemNoFont.setBold(True)
         self.refreshCellsShortcut = QShortcut(QtGui.QKeySequence(self.tr("R")),self)
@@ -266,7 +338,7 @@ class mainProgram(QMainWindow):
 
         self.buildMainWindow()
         self.cableData = data['cableData']
-        self.revisionHistory = data['revisions']
+        self.revisionData = data['revisions']
         self.getUniqueItemNumbers(data)
         self.buildInitialTable(data)
         self.buildRightDock()
@@ -294,10 +366,18 @@ class mainProgram(QMainWindow):
         self.cableDataWindow1.show()
         #self.saved = False
 
+    def showRevisionData(self):
+        self.revisionDataWindow1 = revisionWindow(self.signals, self.revisionData)
+        self.revisionDataWindow1.show()
+
     def saveCableData(self):
         self.cableData = self.cableDataWindow1.cableData
         self.saved = False
         #self.export()
+
+    def saveRevisionData(self):
+        self.revisionData = self.revisionDataWindow1.revisionData
+        self.saved = False
         
     def renamePanel(self):
         newPanelName = QInputDialog()
@@ -348,27 +428,7 @@ class mainProgram(QMainWindow):
                 event.ignore()
         else:
             event.accept()
-
-    def addRevisionInformation(self):
-        revisionMessage = QDialog()
-        revisionMessageLayout = QFormLayout()
-        revisionMessageLayout.addWidget(QLabel("Add Revision Information (Leave blank to Skip Revision Update):"))
-        description = QLineEdit()
-        description.setPlaceholderText("Description")
-        revisionMessageLayout.addWidget(description)
-        user = QLineEdit()
-        user.setPlaceholderText("User Initials")
-        revisionMessageLayout.addWidget(user)
-        okButton = QPushButton()
-        okButton.setText("Enter")
-        okButton.clicked.connect(revisionMessage.accept)
-        revisionMessageLayout.addWidget(okButton)
-        revisionMessage.setLayout(revisionMessageLayout)
-        revisionMessage.exec()
-        if self.revisionHistory[0] == {}:
-            self.revisionHistory.pop(0)
-        self.revisionHistory.append({'date':str(date.today()),'user':user.text(),'description':description.text()})
-            
+  
     def refreshCells(self):
         self.tableWidget.resizeColumnsToContents()
         self.tableWidget.resizeRowsToContents()
@@ -417,7 +477,7 @@ class mainProgram(QMainWindow):
                                 "To\nDevice Number":[],
                                 "To\nPort":[],
                                 "To\nPanel Number":[]}
-        data['revisions'] = [{}]
+        data['revisions'] = {"date":[],"user":[],"description":[]}
         # for i in list(data.keys()):
         #     self.columnHeaders.append(i)
 
@@ -521,7 +581,7 @@ class mainProgram(QMainWindow):
 
         self.addItemButton = QPushButton('Add Item: 0',clicked=self.addItem)
         self.printButton = QPushButton('Save',clicked=self.export)
-        self.revisionButton = QPushButton('Add Revision Information',clicked=self.addRevisionInformation)
+        #self.revisionButton = QPushButton('Add Revision Information',clicked=self.addRevisionInformation)
         self.deleteRow = QPushButton(f'Delete Item: ',clicked=self.deleteItem)
         self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
@@ -531,6 +591,7 @@ class mainProgram(QMainWindow):
         self.renamePanelButton = QPushButton('Rename Panel',clicked=self.renamePanel)
         self.addLooseButton = QPushButton('Add "Loose and Not Mounted"',clicked=self.addLoose)
         self.cableDataWindowButton = QPushButton('Show Cable Window', clicked=self.showCableData)
+        self.revisionDataWindowButton = QPushButton("Show Revision Data",clicked=self.showRevisionData)
 
         self.dockLayout = QFormLayout()
         self.dockLayout.addRow(self.dockItemSelect)
@@ -544,9 +605,9 @@ class mainProgram(QMainWindow):
         self.dockLayout.addRow(self.addLooseButton)
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.cableDataWindowButton)
+        self.dockLayout.addRow(self.revisionDataWindowButton)
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.printButton)
-        self.dockLayout.addRow(self.revisionButton)
         self.dockLayout.addItem(QSpacerItem(50,300))
         self.dockLayout.addRow(self.hintsButton)
         
@@ -649,7 +710,7 @@ class mainProgram(QMainWindow):
                 #else:
                 #    self.outputDictionary[panel][item]['cables'] = 'N/A'
         self.outputDictionary['cableData'] = self.cableData
-        self.outputDictionary['revisions'] = self.revisionHistory
+        self.outputDictionary['revisions'] = self.revisionData
                     
     def saveJSONFile(self):
         self.developOutputDictionary()
@@ -887,6 +948,7 @@ class signalClass(QWidget):
     checkOneLot = QtCore.pyqtSignal(int)
     needsSaved = QtCore.pyqtSignal(bool)
     saveCableData = QtCore.pyqtSignal()
+    saveRevisionData = QtCore.pyqtSignal()
 
 
 #--------------------------------------------------------PDF SECTION----------------------------------------------------------------
