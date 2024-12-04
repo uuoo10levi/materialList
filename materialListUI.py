@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QAction, QShortcut, QMessageBox, QFileDialog, QRadio
 import json
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape, inch
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Table
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, Spacer, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfgen.canvas import Canvas
 import re
@@ -250,6 +250,8 @@ class mainProgram(QMainWindow):
         self.refreshDockShortcut.activated.connect(self.buildRightDock)
         self.helpShortcut = QShortcut(QtGui.QKeySequence(self.tr("H")),self)
         self.helpShortcut.activated.connect(self.displayHints)
+        self.test = QShortcut(QtGui.QKeySequence(self.tr('T')),self)
+        self.test.activated.connect(self.makeCableTable)
         #self.cableDataShortcut = QShortcut(QtGui.QKeySequence(self.tr("C")),self)
         #self.cableDataShortcut.activated.connect(self.showCableData)
         #self.deviceNames = QShortcut(QtGui.QKeySequence(self.tr("N")),self)
@@ -363,7 +365,8 @@ class mainProgram(QMainWindow):
     
     def showCableData(self):
         availablePanels = list(self.columnHeaders) #list() forces "copy by value" instead of "copy by reference"
-        availablePanels.remove('Loose and Not Mounted')
+        if 'Loose and Not Mounted' in availablePanels:
+            availablePanels.remove('Loose and Not Mounted')
         availablePanels.remove('Item Options')
         self.cableDataWindow1 = cableWindow(self.signals, self.cableData,availableItemNumbers=self.uniqueItemNumbers, availableDeviceNumbers=self.getAllDeviceNames(), availablePanelNumbers=availablePanels)
         self.cableDataWindow1.show()
@@ -723,77 +726,38 @@ class mainProgram(QMainWindow):
         '''Saves with form:
         {'|Panel|':{'description':'|panel description|','|item number|':{'count':'|count|','names':'|[names]|','description':'|item description|'}}}'''
     
-    def makePDF(self):
-        headings = [self.matListFileName, '', 'QUANTITY/DEVICE NO.', 'ITEM NO.','EQUIPMENT DESCRIPTION','Total']
-        for i in self.columnHeaders[1:]:
-            headings.append(i)
-        matListData = [['' for j in range(self.tableWidget.columnCount())] for i in range(self.tableWidget.rowCount())]
-        for row in range(self.tableWidget.rowCount()):
-            for column in range(self.tableWidget.columnCount()):
-                if column != 0:
-                    if not self.tableWidget.cellWidget(row,column).oneLotSelected:
-                        matListData[row][column] = [self.tableWidget.cellWidget(row,column).countSelect.value(),[i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames]]
-                    else:
-                        matListData[row][column] = '1 Lot'
-                if column == 0:
-                    matListData[row][column] = self.tableWidget.cellWidget(row,column).text
-        matlistTableData = [['' for i in range(len(matListData[0])+2)] for j in range(len(matListData)+3)]
-        matlistTableData[0][0] = os.path.basename(headings[0]).split('.')[0] + " Material List"
-        matlistTableData[2][0] = headings[3]
-        matlistTableData[2][1] = headings[4]
-        matlistTableData[2][2] = 'Total'
-        for index, heading in enumerate(headings[5:]):
-            matlistTableData[2][index+2] = heading
-        #Item numbers, and per panel counts/device names
-        for rowIndex, row in enumerate(matListData):
-            for columnIndex, cell in enumerate(row):
-                if columnIndex != 0:
-                    if cell != '1 Lot':
-                        tempCell = str(cell[0])
-                        for i in cell[1]:
-                            tempCell = tempCell + '<br/>' + i
-                    else:
-                        tempCell = '1 Lot'
-                    matlistTableData[rowIndex+3][columnIndex+2] = tempCell
-                if columnIndex == 0:
-                    matlistTableData[rowIndex+3][columnIndex] = cell
-        #Descriptions
-        for rowIndex, row in enumerate(matlistTableData):
-            if rowIndex > 2:
-                matlistTableData[rowIndex][1] = self.masterMatList[row[0]]
-        #Total column
-        for rowIndex, row in enumerate(matListData):
-            if '1 Lot' not in [i for i in matListData[rowIndex][1:]]:
-                matlistTableData[rowIndex+3][2] = sum([int(i[0]) for i in matListData[rowIndex][1:]])
-            else:
-                matlistTableData[rowIndex+3][2] = '1 Lot'
-        if len(matlistTableData[0][2:]) > 4:
-            pageWidth = 11
-            pageHeight = 8.5
-        if len(matlistTableData[0][2:]) > 8:
-            pageWidth = 17
-            pageHeight = 11
-        
-        # headings = ['Document Title','Item Number', 'Description', 'Total', 'Panel 1', 'Panel 2', 'Panel 3', etc]
-        width = pageWidth*inch
-        matlistColumnWidths = [50,100,50]
-        for i in matlistTableData[0][2:]:
-            matlistColumnWidths.append((width-200)/len(matlistTableData[0][2:]))
-        #Format cells
-        #styleSheet = getSampleStyleSheet()
+    def makeMatlistTable(self):
         styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
         styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
-        matlistTableData[2][1] = Paragraph(str(matlistTableData[2][1]),styleCustomCenterJustified) #"Description" cell
-        for i in range(len(matlistTableData)):
-            for j in range(len(matlistTableData[i])):
-                if j != 1:
-                    matlistTableData[i][j] = Paragraph(str(matlistTableData[i][j]), styleCustomCenterJustified) #Item description cells
-        for i in range(len(matlistTableData)):
-            if i > 2:
-                matlistTableData[i][1] = Paragraph(str(matlistTableData[i][1]), styleCustomLeftJustified) #'Count' cells
         
+
+        matlistTableData = [['' for i in range(self.tableWidget.columnCount()+2)] for j in range(self.tableWidget.rowCount()+3)]
+        matlistTableData[0][0] = os.path.basename(self.matListFileName).split('.')[0] + " Material List"
+        matlistTableData[2][0] = Paragraph('ITEM NO.',styleCustomCenterJustified)
+        matlistTableData[2][1] = Paragraph('EQUIPMENT DESCRIPTION',styleCustomCenterJustified)
+        matlistTableData[2][2] = Paragraph('Total',styleCustomCenterJustified)
+        #Fill Headers
+        for panelIndex, panel in enumerate(self.columnHeaders[1:]):
+            matlistTableData[2][panelIndex+3] = Paragraph(panel, styleCustomCenterJustified)
+        #Fill Item Count and Names Cells
+        for rowIndex in range(self.tableWidget.rowCount()):
+            for columnIndex in range(1, self.tableWidget.columnCount()):
+                if self.tableWidget.cellWidget(rowIndex,columnIndex).oneLotSelected:
+                    matlistTableData[rowIndex+3][columnIndex+2] = Paragraph('1 Lot',styleCustomCenterJustified)
+                else:
+                    matlistTableData[rowIndex+3][columnIndex+2] = Paragraph('<br/>'.join([str(self.tableWidget.cellWidget(rowIndex,columnIndex).countSelect.value()),'<br/>'.join([i.text() for i in self.tableWidget.cellWidget(rowIndex,columnIndex).deviceNames])]),styleCustomCenterJustified)
+        #Fill Total Cells    
+            if True in [self.tableWidget.cellWidget(rowIndex, columnIndex).oneLotSelected for columnIndex in range(1,self.tableWidget.columnCount())]:
+                matlistTableData[rowIndex+3][2] = Paragraph('1 Lot',styleCustomCenterJustified)
+            else:  
+                matlistTableData[rowIndex+3][2] = Paragraph(str(sum([self.tableWidget.cellWidget(rowIndex, columnIndex).countSelect.value() for columnIndex in range(1,self.tableWidget.columnCount())])), styleCustomCenterJustified)
+        #Fill Item Numbers and Descriptions
+            matlistTableData[rowIndex+3][0] = Paragraph(self.tableWidget.cellWidget(rowIndex, 0).text, styleCustomCenterJustified)
+            matlistTableData[rowIndex+3][1] = Paragraph(self.masterMatList[self.tableWidget.cellWidget(rowIndex, 0).text], styleCustomLeftJustified)
         
-        
+        matlistColumnWidths = [50,200,50]
+        for i in matlistTableData[0][2:]:
+            matlistColumnWidths.append((self.pageWidth*inch-250)/len(matlistTableData[0][2:]))
         matlistTable = Table(matlistTableData, colWidths=matlistColumnWidths, repeatRows=3, style=[
             ('GRID',(0,0),(-1,-1),0.5,colors.black),
             ('SPAN', (0,0), (-1, 0)),
@@ -801,23 +765,66 @@ class mainProgram(QMainWindow):
             ('SPAN', (2,1), (-1, 1)),
             ('ALIGN',(0,0),(-1,-1),'CENTER'),
             ('VALIGN',(0,0),(-1,-1),'TOP')])
+        return matlistTable
+
+    def makeCableTable(self):
+        styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
+        #cableTableData = [[Paragraph(key.upper(), styleCustomCenterJustified) for key in list(self.cableData.keys())]]
+        cableTableData = [['ITEM NO.', 'CABLE TYPE', 'ESTIMATED LENGTH', 'FROM', '', '', '', 'TO', '', '', ''],['', '', '', 'RELAY TYPE', 'DEVICE NUMBER', 'PORT', 'PANEL NUMBER', 'RELAY TYPE', 'DEVICE NUMBER', 'PORT', 'PANEL NUMBER']]
+        for rowIndex in range(len(cableTableData)):
+            for colIndex in range(len(cableTableData[0])):
+                cableTableData[rowIndex][colIndex] = Paragraph(cableTableData[rowIndex][colIndex], styleCustomCenterJustified)
+        colWidths=[(self.pageWidth*inch-50)/11 for i in cableTableData[0]]
+        colWidths[2] = colWidths[2] + 10
+        for rowIndex in range(len(list(self.cableData['Item No.']))):
+            row = [Paragraph(str(self.cableData[key][rowIndex]), styleCustomCenterJustified) for key in self.cableData.keys()]
+            cableTableData.append(row)
+        cableTable = Table(cableTableData, colWidths=colWidths, repeatRows=2, style=[('GRID',(0,0),(-1,-1),0.5,colors.black),
+                                                                                                                                    ('SPAN', (0,0), (0,1)),
+                                                                                                                                    ('SPAN', (1,0), (1,1)),
+                                                                                                                                    ('SPAN', (2,0), (2,1)),
+                                                                                                                                    ('SPAN', (3,0), (6,0)),
+                                                                                                                                    ('SPAN', (7,0), (10,0))])
+        return cableTable
+
+    def makeRevisionTable(self):
+        styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
+        revisionTableData = [[Paragraph(key.upper(), styleCustomCenterJustified) for key in list(self.revisionData.keys())]]
+        for rowIndex in range(len(list(self.revisionData['date']))):
+            row = [Paragraph(str(self.revisionData[key][rowIndex]), styleCustomCenterJustified) for key in self.revisionData.keys()]
+            revisionTableData.append(row)
+        revisionTable = Table(revisionTableData, colWidths=[50, 50, 400], repeatRows=2, style=[  ('GRID',(0,0),(-1,-1),0.5,colors.black),],hAlign='LEFT')
+        return revisionTable
+
+    def makePDF(self):
+        self.pageWidth = 8.5
+        self.pageHeight = 11
+        if len(self.columnHeaders) > 5:
+            self.pageWidth = 11
+            self.pageHeight = 8.5
+        if len(self.columnHeaders) > 9:
+            self.pageWidth = 17
+            self.pageHeight = 11
+        matlistTable = self.makeMatlistTable()
+        cableTable = self.makeCableTable()
+        revisionTable = self.makeRevisionTable()
         
-        # cableTable = Table(matlistTableData, matlistColumnWidths=matlistColumnWidths, style=[
-        #     ('GRID',(0,0),(-1,-1),0.5,colors.black),
-        #     ('SPAN', (0,0), (-1, 0)),
-        #     ('SPAN', (0,1), (1, 1)),
-        #     ('SPAN', (2,1), (-1, 1)),
-        #     ('ALIGN',(0,0),(-1,-1),'CENTER'),
-        #     ('VALIGN',(0,0),(-1,-1),'TOP')])
-        # elements.append(cableTable)
-        pagesize = (pageWidth * inch, pageHeight * inch)
+        pagesize = (self.pageWidth * inch, self.pageHeight * inch)
         doc = SimpleDocTemplate(self.pdfFileName, pagesize=pagesize)
         doc.__setattr__('topMargin', 0.25*inch)
         doc.__setattr__('leftMargin', 0.25*inch)
         doc.__setattr__('rightMargin', 0.25*inch)
         doc.__setattr__('bottomMargin', 0.25*inch)
         elements = []
+        #elements.append(Paragraph("Title"))
+        #elements.append(Paragraph("Material List"))
         elements.append(matlistTable)
+        elements.append(PageBreak())
+        #elements.append(Paragraph("Cable List"))
+        elements.append(cableTable)
+        elements.append(PageBreak())
+        #elements.append(Paragraph("Revisions"))
+        elements.append(revisionTable)
         doc.build(elements, canvasmaker=NumberedPageCanvas)
 
     def deleteItem(self):
