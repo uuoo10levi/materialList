@@ -362,7 +362,10 @@ class mainProgram(QMainWindow):
         return(max(total,minimumCableCount))
     
     def showCableData(self):
-        self.cableDataWindow1 = cableWindow(self.signals, self.cableData)
+        availablePanels = list(self.columnHeaders) #list() forces "copy by value" instead of "copy by reference"
+        availablePanels.remove('Loose and Not Mounted')
+        availablePanels.remove('Item Options')
+        self.cableDataWindow1 = cableWindow(self.signals, self.cableData,availableItemNumbers=self.uniqueItemNumbers, availableDeviceNumbers=self.getAllDeviceNames(), availablePanelNumbers=availablePanels)
         self.cableDataWindow1.show()
         #self.saved = False
 
@@ -724,9 +727,7 @@ class mainProgram(QMainWindow):
         headings = [self.matListFileName, '', 'QUANTITY/DEVICE NO.', 'ITEM NO.','EQUIPMENT DESCRIPTION','Total']
         for i in self.columnHeaders[1:]:
             headings.append(i)
-
         matListData = [['' for j in range(self.tableWidget.columnCount())] for i in range(self.tableWidget.rowCount())]
-
         for row in range(self.tableWidget.rowCount()):
             for column in range(self.tableWidget.columnCount()):
                 if column != 0:
@@ -736,16 +737,13 @@ class mainProgram(QMainWindow):
                         matListData[row][column] = '1 Lot'
                 if column == 0:
                     matListData[row][column] = self.tableWidget.cellWidget(row,column).text
-
-
-
-        tableData = [['' for i in range(len(matListData[0])+2)] for j in range(len(matListData)+3)]
-        tableData[0][0] = os.path.basename(headings[0]).split('.')[0] + " Material List"
-        tableData[2][0] = headings[3]
-        tableData[2][1] = headings[4]
-        tableData[2][2] = 'Total'
+        matlistTableData = [['' for i in range(len(matListData[0])+2)] for j in range(len(matListData)+3)]
+        matlistTableData[0][0] = os.path.basename(headings[0]).split('.')[0] + " Material List"
+        matlistTableData[2][0] = headings[3]
+        matlistTableData[2][1] = headings[4]
+        matlistTableData[2][2] = 'Total'
         for index, heading in enumerate(headings[5:]):
-            tableData[2][index+2] = heading
+            matlistTableData[2][index+2] = heading
         #Item numbers, and per panel counts/device names
         for rowIndex, row in enumerate(matListData):
             for columnIndex, cell in enumerate(row):
@@ -756,54 +754,55 @@ class mainProgram(QMainWindow):
                             tempCell = tempCell + '<br/>' + i
                     else:
                         tempCell = '1 Lot'
-                    tableData[rowIndex+3][columnIndex+2] = tempCell
+                    matlistTableData[rowIndex+3][columnIndex+2] = tempCell
                 if columnIndex == 0:
-                    tableData[rowIndex+3][columnIndex] = cell
+                    matlistTableData[rowIndex+3][columnIndex] = cell
         #Descriptions
-        for rowIndex, row in enumerate(tableData):
+        for rowIndex, row in enumerate(matlistTableData):
             if rowIndex > 2:
-                tableData[rowIndex][1] = self.masterMatList[row[0]]
+                matlistTableData[rowIndex][1] = self.masterMatList[row[0]]
         #Total column
         for rowIndex, row in enumerate(matListData):
             if '1 Lot' not in [i for i in matListData[rowIndex][1:]]:
-                tableData[rowIndex+3][2] = sum([int(i[0]) for i in matListData[rowIndex][1:]])
+                matlistTableData[rowIndex+3][2] = sum([int(i[0]) for i in matListData[rowIndex][1:]])
             else:
-                tableData[rowIndex+3][2] = '1 Lot'
-        if len(tableData[0][2:]) > 4:
+                matlistTableData[rowIndex+3][2] = '1 Lot'
+        if len(matlistTableData[0][2:]) > 4:
             pageWidth = 11
             pageHeight = 8.5
-        if len(tableData[0][2:]) > 8:
+        if len(matlistTableData[0][2:]) > 8:
             pageWidth = 17
             pageHeight = 11
-        styleSheet = getSampleStyleSheet()
-        pagesize = (pageWidth * inch, pageHeight * inch)
-        styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=styleSheet['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
-        styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=styleSheet['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
-        doc = SimpleDocTemplate(self.pdfFileName, pagesize=pagesize)
-        elements = []
+        
         # headings = ['Document Title','Item Number', 'Description', 'Total', 'Panel 1', 'Panel 2', 'Panel 3', etc]
         width = pageWidth*inch
-        colWidths = [50,100,50]
-        for i in tableData[0][2:]:
-            colWidths.append((width-200)/len(tableData[0][2:]))
+        matlistColumnWidths = [50,100,50]
+        for i in matlistTableData[0][2:]:
+            matlistColumnWidths.append((width-200)/len(matlistTableData[0][2:]))
         #Format cells
-        tableData[2][1] = Paragraph(str(tableData[2][1]),styleCustomCenterJustified) #"Description" cell
-        for i in range(len(tableData)):
-            for j in range(len(tableData[i])):
+        #styleSheet = getSampleStyleSheet()
+        styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
+        styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
+        matlistTableData[2][1] = Paragraph(str(matlistTableData[2][1]),styleCustomCenterJustified) #"Description" cell
+        for i in range(len(matlistTableData)):
+            for j in range(len(matlistTableData[i])):
                 if j != 1:
-                    tableData[i][j] = Paragraph(str(tableData[i][j]), styleCustomCenterJustified) #Item description cells
-        for i in range(len(tableData)):
+                    matlistTableData[i][j] = Paragraph(str(matlistTableData[i][j]), styleCustomCenterJustified) #Item description cells
+        for i in range(len(matlistTableData)):
             if i > 2:
-                tableData[i][1] = Paragraph(str(tableData[i][1]), styleCustomLeftJustified) #'Count' cells
-        matlistTable = Table(tableData, colWidths=colWidths, repeatRows=3, style=[
+                matlistTableData[i][1] = Paragraph(str(matlistTableData[i][1]), styleCustomLeftJustified) #'Count' cells
+        
+        
+        
+        matlistTable = Table(matlistTableData, colWidths=matlistColumnWidths, repeatRows=3, style=[
             ('GRID',(0,0),(-1,-1),0.5,colors.black),
             ('SPAN', (0,0), (-1, 0)),
             ('SPAN', (0,1), (1, 1)),
             ('SPAN', (2,1), (-1, 1)),
             ('ALIGN',(0,0),(-1,-1),'CENTER'),
             ('VALIGN',(0,0),(-1,-1),'TOP')])
-        elements.append(matlistTable)
-        # cableTable = Table(tableData, colWidths=colWidths, style=[
+        
+        # cableTable = Table(matlistTableData, matlistColumnWidths=matlistColumnWidths, style=[
         #     ('GRID',(0,0),(-1,-1),0.5,colors.black),
         #     ('SPAN', (0,0), (-1, 0)),
         #     ('SPAN', (0,1), (1, 1)),
@@ -811,19 +810,15 @@ class mainProgram(QMainWindow):
         #     ('ALIGN',(0,0),(-1,-1),'CENTER'),
         #     ('VALIGN',(0,0),(-1,-1),'TOP')])
         # elements.append(cableTable)
+        pagesize = (pageWidth * inch, pageHeight * inch)
+        doc = SimpleDocTemplate(self.pdfFileName, pagesize=pagesize)
         doc.__setattr__('topMargin', 0.25*inch)
         doc.__setattr__('leftMargin', 0.25*inch)
         doc.__setattr__('rightMargin', 0.25*inch)
         doc.__setattr__('bottomMargin', 0.25*inch)
+        elements = []
+        elements.append(matlistTable)
         doc.build(elements, canvasmaker=NumberedPageCanvas)
-
-
-
-
-
-
-
-
 
     def deleteItem(self):
         if len(self.uniqueItemNumbers) > 0:
