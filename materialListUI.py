@@ -351,10 +351,7 @@ class mainProgram(QMainWindow):
     def addCellNote(self):
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
         noteBox = QInputDialog()
-        noteBox.setWindowTitle("Cell Note")
-        noteBox.setLabelText(f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.columnHeaders[self.currentlySelectedCell[1]]}")
-        noteBox.exec()
-        self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = noteBox.textValue()
+        self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = noteBox.getText(self,'Cell Note',f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.columnHeaders[self.currentlySelectedCell[1]]}",text=self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note)[0]
 
     def getAllDeviceNames(self):
         deviceNames = []
@@ -653,7 +650,7 @@ class mainProgram(QMainWindow):
     def displayHints(self):
         hints = QMessageBox()
         hints.setWindowTitle('Hints')
-        hints.setText('Shortcuts:\n\'R\': Resize Cells to Fit Contents\n\'D\': Show Menu\n\'C\': Show Cable Data\n\'H\': Display Hints\nDouble-Click Cell: Show Item Description\nType: "<br/>" when entering data to force a new line')
+        hints.setText('Shortcuts:\n\'R\': Resize Cells to Fit Contents\n\'D\': Show Menu\n\'C\': Show Cable Data\n\'H\': Display Hints\n\'N\': Add Note to Currently Selected Cell\nDouble-Click Cell: Show Item Description\nType: "<br/>" when entering data to force a new line')
         hints.exec()
 
     def deletePanel(self):
@@ -1042,8 +1039,6 @@ class signalClass(QWidget):
     saveCableData = QtCore.pyqtSignal()
     saveRevisionData = QtCore.pyqtSignal()
 
-
-#--------------------------------------------------------PDF SECTION----------------------------------------------------------------
 class NumberedPageCanvas(Canvas):
     """
     http://code.activestate.com/recipes/546511-page-x-of-y-with-reportlab/
