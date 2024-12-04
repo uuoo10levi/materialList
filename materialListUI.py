@@ -250,6 +250,8 @@ class mainProgram(QMainWindow):
         self.refreshDockShortcut.activated.connect(self.buildRightDock)
         self.helpShortcut = QShortcut(QtGui.QKeySequence(self.tr("H")),self)
         self.helpShortcut.activated.connect(self.displayHints)
+        self.cellNoteShortcut = QShortcut(QtGui.QKeySequence(self.tr('N')),self)
+        self.cellNoteShortcut.activated.connect(self.addCellNote)
         self.test = QShortcut(QtGui.QKeySequence(self.tr('T')),self)
         self.test.activated.connect(self.makeCableTable)
         #self.cableDataShortcut = QShortcut(QtGui.QKeySequence(self.tr("C")),self)
@@ -345,6 +347,14 @@ class mainProgram(QMainWindow):
         self.buildInitialTable(data)
         self.buildRightDock()
         self.saved = True
+
+    def addCellNote(self):
+        self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
+        noteBox = QInputDialog()
+        noteBox.setWindowTitle("Cell Note")
+        noteBox.setLabelText(f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.columnHeaders[self.currentlySelectedCell[1]]}")
+        noteBox.exec()
+        self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = noteBox.textValue()
 
     def getAllDeviceNames(self):
         deviceNames = []
@@ -545,7 +555,7 @@ class mainProgram(QMainWindow):
                         count = int(data[panel][item]['count'])
                     else:
                         count = '1 Lot'
-                    cell = advancedCustomTableWidgetItem(self.signals, count=count,deviceNames=data[panel][item]['names'],coordinates=(itemIndex,panelIndex))
+                    cell = advancedCustomTableWidgetItem(self.signals, count=count,deviceNames=data[panel][item]['names'],coordinates=(itemIndex,panelIndex), note=data[panel][item]['note'])
                     cell.showDevices = self.tableWidget.cellWidget(itemIndex,0).deviceNames.isChecked()
                     
                     self.tableWidget.setCellWidget(itemIndex,panelIndex,cell)
@@ -711,6 +721,7 @@ class mainProgram(QMainWindow):
                     self.outputDictionary[panel][item]['count'] = self.tableWidget.cellWidget(row,column).countSelect.value()
                 self.outputDictionary[panel][item]['names'] = [i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames]
                 self.outputDictionary[panel][item]['description'] = ''
+                self.outputDictionary[panel][item]['note'] = self.tableWidget.cellWidget(row, column).note
                 #if item[0] == '2' and len(item) >= 3: #Only for cables
                 #    self.outputDictionary[panel][item]['cables'] = self.tableWidget.cellWidget(row,column).cableData
                 #else:
@@ -729,10 +740,9 @@ class mainProgram(QMainWindow):
     def makeMatlistTable(self):
         styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
         styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
-        
-
         matlistTableData = [['' for i in range(self.tableWidget.columnCount()+2)] for j in range(self.tableWidget.rowCount()+3)]
         matlistTableData[0][0] = os.path.basename(self.matListFileName).split('.')[0] + " Material List"
+        matlistTableData[1][2] = Paragraph('QUANTITY / DEVICE NAMES', styleCustomCenterJustified)
         matlistTableData[2][0] = Paragraph('ITEM NO.',styleCustomCenterJustified)
         matlistTableData[2][1] = Paragraph('EQUIPMENT DESCRIPTION',styleCustomCenterJustified)
         matlistTableData[2][2] = Paragraph('Total',styleCustomCenterJustified)
@@ -743,9 +753,9 @@ class mainProgram(QMainWindow):
         for rowIndex in range(self.tableWidget.rowCount()):
             for columnIndex in range(1, self.tableWidget.columnCount()):
                 if self.tableWidget.cellWidget(rowIndex,columnIndex).oneLotSelected:
-                    matlistTableData[rowIndex+3][columnIndex+2] = Paragraph('1 Lot',styleCustomCenterJustified)
+                    matlistTableData[rowIndex+3][columnIndex+2] = Paragraph('1 Lot<br/>'+self.tableWidget.cellWidget(rowIndex,columnIndex).note,styleCustomCenterJustified)
                 else:
-                    matlistTableData[rowIndex+3][columnIndex+2] = Paragraph('<br/>'.join([str(self.tableWidget.cellWidget(rowIndex,columnIndex).countSelect.value()),'<br/>'.join([i.text() for i in self.tableWidget.cellWidget(rowIndex,columnIndex).deviceNames])]),styleCustomCenterJustified)
+                    matlistTableData[rowIndex+3][columnIndex+2] = Paragraph('<br/>'.join([str(self.tableWidget.cellWidget(rowIndex,columnIndex).countSelect.value()),'<br/>'.join([i.text() for i in self.tableWidget.cellWidget(rowIndex,columnIndex).deviceNames])])+self.tableWidget.cellWidget(rowIndex,columnIndex).note,styleCustomCenterJustified)
         #Fill Total Cells    
             if True in [self.tableWidget.cellWidget(rowIndex, columnIndex).oneLotSelected for columnIndex in range(1,self.tableWidget.columnCount())]:
                 matlistTableData[rowIndex+3][2] = Paragraph('1 Lot',styleCustomCenterJustified)
@@ -754,7 +764,6 @@ class mainProgram(QMainWindow):
         #Fill Item Numbers and Descriptions
             matlistTableData[rowIndex+3][0] = Paragraph(self.tableWidget.cellWidget(rowIndex, 0).text, styleCustomCenterJustified)
             matlistTableData[rowIndex+3][1] = Paragraph(self.masterMatList[self.tableWidget.cellWidget(rowIndex, 0).text], styleCustomLeftJustified)
-        
         matlistColumnWidths = [50,200,50]
         for i in matlistTableData[0][2:]:
             matlistColumnWidths.append((self.pageWidth*inch-250)/len(matlistTableData[0][2:]))
@@ -780,11 +789,11 @@ class mainProgram(QMainWindow):
             row = [Paragraph(str(self.cableData[key][rowIndex]), styleCustomCenterJustified) for key in self.cableData.keys()]
             cableTableData.append(row)
         cableTable = Table(cableTableData, colWidths=colWidths, repeatRows=2, style=[('GRID',(0,0),(-1,-1),0.5,colors.black),
-                                                                                                                                    ('SPAN', (0,0), (0,1)),
-                                                                                                                                    ('SPAN', (1,0), (1,1)),
-                                                                                                                                    ('SPAN', (2,0), (2,1)),
-                                                                                                                                    ('SPAN', (3,0), (6,0)),
-                                                                                                                                    ('SPAN', (7,0), (10,0))])
+                                                                                        ('SPAN', (0,0), (0,1)),
+                                                                                        ('SPAN', (1,0), (1,1)),
+                                                                                        ('SPAN', (2,0), (2,1)),
+                                                                                        ('SPAN', (3,0), (6,0)),
+                                                                                        ('SPAN', (7,0), (10,0))])
         return cableTable
 
     def makeRevisionTable(self):
@@ -838,7 +847,7 @@ class mainProgram(QMainWindow):
         self.saved = False
 
 class advancedCustomTableWidgetItem(QWidget):
-    def __init__(self,signalClass, count=0,deviceNames=[], coordinates=()):
+    def __init__(self,signalClass, count=0,deviceNames=[], coordinates=(), note = ''):
         super(advancedCustomTableWidgetItem,self).__init__()
         self.signals=signalClass
         self.signals.enableDeviceNames.connect(self.enableDeviceNames)
@@ -852,6 +861,7 @@ class advancedCustomTableWidgetItem(QWidget):
         self.countSelect.valueChanged.connect(self.spinBoxChanged)
         self.oneLotSelected = False
         self.showDevices = False
+        self.note = note
 
         #List of dictionaries for cable data
         #One dictionary entry per cable
