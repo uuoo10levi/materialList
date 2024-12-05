@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QAction, QShortcut, QMessageBox, QFileDialog, QRadio
 import json
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape, inch
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, Spacer, PageBreak
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfgen.canvas import Canvas
 import re
@@ -349,6 +349,7 @@ class mainProgram(QMainWindow):
         self.saved = True
 
     def addCellNote(self):
+        self.saved = False
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
         noteBox = QInputDialog()
         self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = noteBox.getText(self,'Cell Note',f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.columnHeaders[self.currentlySelectedCell[1]]}",text=self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note)[0]
@@ -650,7 +651,7 @@ class mainProgram(QMainWindow):
     def displayHints(self):
         hints = QMessageBox()
         hints.setWindowTitle('Hints')
-        hints.setText('Shortcuts:\n\'R\': Resize Cells to Fit Contents\n\'D\': Show Menu\n\'C\': Show Cable Data\n\'H\': Display Hints\n\'N\': Add Note to Currently Selected Cell\nDouble-Click Cell: Show Item Description\nType: "<br/>" when entering data to force a new line')
+        hints.setText('Shortcuts:\n\'R\': Resize Cells to Fit Contents\n\'D\': Show Menu\n\'H\': Display Hints\n\'N\': Add Note to Currently Selected Cell\nDouble-Click Cell: Show Item Description\nType: "<br/>" when entering data to force a new line')
         hints.exec()
 
     def deletePanel(self):
@@ -752,7 +753,7 @@ class mainProgram(QMainWindow):
                 if self.tableWidget.cellWidget(rowIndex,columnIndex).oneLotSelected:
                     matlistTableData[rowIndex+3][columnIndex+2] = Paragraph('1 Lot<br/>'+self.tableWidget.cellWidget(rowIndex,columnIndex).note,styleCustomCenterJustified)
                 else:
-                    matlistTableData[rowIndex+3][columnIndex+2] = Paragraph('<br/>'.join([str(self.tableWidget.cellWidget(rowIndex,columnIndex).countSelect.value()),'<br/>'.join([i.text() for i in self.tableWidget.cellWidget(rowIndex,columnIndex).deviceNames])])+self.tableWidget.cellWidget(rowIndex,columnIndex).note,styleCustomCenterJustified)
+                    matlistTableData[rowIndex+3][columnIndex+2] = Paragraph('<br/>'.join([str(self.tableWidget.cellWidget(rowIndex,columnIndex).countSelect.value()),'<br/>'.join([i.text() for i in self.tableWidget.cellWidget(rowIndex,columnIndex).deviceNames])])+'<br/>'+self.tableWidget.cellWidget(rowIndex,columnIndex).note,styleCustomCenterJustified)
         #Fill Total Cells    
             if True in [self.tableWidget.cellWidget(rowIndex, columnIndex).oneLotSelected for columnIndex in range(1,self.tableWidget.columnCount())]:
                 matlistTableData[rowIndex+3][2] = Paragraph('1 Lot',styleCustomCenterJustified)
