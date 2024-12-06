@@ -5,15 +5,31 @@ from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QAction, QShortcut, QMessageBox, QFileDialog, QRadioButton, QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QSpacerItem
 import json
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter, landscape, inch
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, PageBreak
+from reportlab.lib.pagesizes import letter, landscape, inch, mm
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, PageBreak, PageTemplate, BaseDocTemplate
+from reportlab.platypus.frames import Frame
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfgen.canvas import Canvas
 import re
 import os
 import csv
 from datetime import date
+from functools import partial
 
+
+
+#To-Do:
+#   1. Add Bug Report Feature
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
 
 def naturalSortKey(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(re.compile('([0-9]+)'), s)]
@@ -363,6 +379,7 @@ class mainProgram(QMainWindow):
         return deviceNames
     
     def getNumberOfCables(self):
+        '''Deprecated and Unused'''
         total = 0
         for rowIndex, row in enumerate(self.uniqueItemNumbers):
             if row[0] == '2' and len(row) >= 3:
@@ -804,6 +821,11 @@ class mainProgram(QMainWindow):
         return revisionTable
 
     def makePDF(self):
+        styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
+        styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
+        styleCustomRightJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=2, fontSize=8)
+        
+        
         self.pageWidth = 8.5
         self.pageHeight = 11
         if len(self.columnHeaders) > 5:
@@ -817,22 +839,32 @@ class mainProgram(QMainWindow):
         revisionTable = self.makeRevisionTable()
         
         pagesize = (self.pageWidth * inch, self.pageHeight * inch)
-        doc = SimpleDocTemplate(self.pdfFileName, pagesize=pagesize)
-        doc.__setattr__('topMargin', 0.25*inch)
-        doc.__setattr__('leftMargin', 0.25*inch)
-        doc.__setattr__('rightMargin', 0.25*inch)
-        doc.__setattr__('bottomMargin', 0.25*inch)
+        doc = BaseDocTemplate(self.pdfFileName, pagesize=pagesize, leftMargin=.25*inch, rightMargin=.25*inch, topMargin=.25*inch, bottomMargin=.25*inch)
+        
+        frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id='normal')
+        self.revisionNumber = Paragraph(f'Rev. {len(self.revisionData)-1}', styleCustomRightJustified)
+        template1 = PageTemplate(id='test', frames=frame, onPage=self.drawRevisionNumber)        
+        
+        
         elements = []
-        #elements.append(Paragraph("Title"))
-        #elements.append(Paragraph("Material List"))
         elements.append(matlistTable)
         elements.append(PageBreak())
-        #elements.append(Paragraph("Cable List"))
         elements.append(cableTable)
         elements.append(PageBreak())
-        #elements.append(Paragraph("Revisions"))
         elements.append(revisionTable)
+
+        doc.addPageTemplates([template1])
         doc.build(elements, canvasmaker=NumberedPageCanvas)
+
+    def drawRevisionNumber(self, canvas, doc):
+        w, h = self.revisionNumber.wrap(doc.width, doc.bottomMargin)
+        self.revisionNumber.drawOn(canvas, doc.leftMargin, h)
+
+
+        
+
+
+
 
     def deleteItem(self):
         if len(self.uniqueItemNumbers) > 0:
@@ -1060,18 +1092,17 @@ class NumberedPageCanvas(Canvas):
         for page in self.pages:
             self.__dict__.update(page)
             self.draw_page_number(page_count)
-            self.draw_rev_number()
             super().showPage()
         super().save()
 
     def draw_page_number(self, page_count):
         page = "Page %s of %s" % (self._pageNumber, page_count)
         self.setFont("Helvetica", 8)
-        self.drawRightString(10.75 * inch, 0.25 * inch, page)
+        self.drawRightString(.81 * inch, 0.22 * inch, page)
+
+
+
         
-    def draw_rev_number(self):
-        self.setFont("Helvetica", 8)
-        self.drawString(0.25 * inch, 0.25 * inch, 'Rev. 0')
 
 if  __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -1081,4 +1112,5 @@ if  __name__ == "__main__":
     application = mainProgram(signals,masterMaterialList=masterList)
     application.show()
     sys.exit(app.exec())
+
 
