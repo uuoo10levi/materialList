@@ -824,8 +824,6 @@ class mainProgram(QMainWindow):
         styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
         styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
         styleCustomRightJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=2, fontSize=8)
-        
-        
         self.pageWidth = 8.5
         self.pageHeight = 11
         if len(self.columnHeaders) > 5:
@@ -837,34 +835,23 @@ class mainProgram(QMainWindow):
         matlistTable = self.makeMatlistTable()
         cableTable = self.makeCableTable()
         revisionTable = self.makeRevisionTable()
-        
         pagesize = (self.pageWidth * inch, self.pageHeight * inch)
         doc = BaseDocTemplate(self.pdfFileName, pagesize=pagesize, leftMargin=.25*inch, rightMargin=.25*inch, topMargin=.25*inch, bottomMargin=.25*inch)
-        
         frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id='normal')
         self.revisionNumber = Paragraph(f'Rev. {len(self.revisionData)-1}', styleCustomRightJustified)
         template1 = PageTemplate(id='test', frames=frame, onPage=self.drawRevisionNumber)        
-        
-        
         elements = []
         elements.append(matlistTable)
         elements.append(PageBreak())
         elements.append(cableTable)
         elements.append(PageBreak())
         elements.append(revisionTable)
-
         doc.addPageTemplates([template1])
         doc.build(elements, canvasmaker=NumberedPageCanvas)
 
     def drawRevisionNumber(self, canvas, doc):
         w, h = self.revisionNumber.wrap(doc.width, doc.bottomMargin)
         self.revisionNumber.drawOn(canvas, doc.leftMargin, h)
-
-
-        
-
-
-
 
     def deleteItem(self):
         if len(self.uniqueItemNumbers) > 0:
