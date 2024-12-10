@@ -13,8 +13,7 @@ from reportlab.pdfgen.canvas import Canvas
 import re
 import os
 import csv
-from datetime import date
-from functools import partial
+
 
 
 
@@ -268,12 +267,8 @@ class mainProgram(QMainWindow):
         self.helpShortcut.activated.connect(self.displayHints)
         self.cellNoteShortcut = QShortcut(QtGui.QKeySequence(self.tr('N')),self)
         self.cellNoteShortcut.activated.connect(self.addCellNote)
-        self.test = QShortcut(QtGui.QKeySequence(self.tr('T')),self)
-        self.test.activated.connect(self.makeCableTable)
-        #self.cableDataShortcut = QShortcut(QtGui.QKeySequence(self.tr("C")),self)
-        #self.cableDataShortcut.activated.connect(self.showCableData)
-        #self.deviceNames = QShortcut(QtGui.QKeySequence(self.tr("N")),self)
-        #self.deviceNames.activated.connect(self.getNumberOfCables)
+        #self.test = QShortcut(QtGui.QKeySequence(self.tr('T')),self)
+        #self.test.activated.connect(self.)
         self.saved = False
         
         self.quit = QAction("Quit",self)
@@ -288,53 +283,12 @@ class mainProgram(QMainWindow):
             self.newFile = False
 
 
-        #Variable Declarations
-        self.monitor = get_monitors()
-        '''Defines monitor object that allows automatic screen window sizing per screen size'''
-        self.monitorXSize = int()
-        '''Defines width of user's monitor'''
-        self.monitorYSize = int()
-        '''Defines height of user's monitor'''
-        self.xShift = int()
-        '''Defines x shift used to center window'''
-        self.yShift = int()
-        '''Defines y shift used to center window'''
-        self.xSize = int()
-        '''Defines width of window'''
-        self.ySize = int()
-        '''Defines height of window'''
-        self.tableWidget = QTableWidget()                   
-        '''Defines Main Scrollable Table'''
-        self.tableWidgetItems = [[]] 
-        '''Defines objects to be slotted into main table cells'''
-        self.columnHeaders = ['Item Options']
-        '''Defines headers for the main table \n'''
         self.dock = QDockWidget('Menu')
-        '''Defines right-side dock'''
         self.dockMenu = QWidget()
-        '''Defines widget to be added to right-side dock'''
         self.dockLayout = QFormLayout()
-        '''Defines layout for widget on right-side dock'''
-        self.dockItemPanels = [QLineEdit()]
-        '''Defines One Text box per panel to allow for new row addition'''
-        self.addButton = QPushButton()
-        '''Defines button on right-side dock that makes new entry from right-side dock data'''
-        self.deviceNames = [QLineEdit()]
-        '''Defines text boxes on right-side dock used to enter individual device names'''
-        self.deviceNameSlots = 0
-        self.spacer = QSpacerItem(0,0)
-        '''Defines space between the add section of the right-side dock and the rest of the right-side dock'''
-        self.printButton = QPushButton()
-        '''Defines button to print the current table to the console'''
-        self.deleteRow = QPushButton()
-        self.addItemButton = QPushButton()
-        self.dockItemSelect = QComboBox()
-
-
         self.currentlySelectedCell = [0,0]
         self.uniqueItemNumbers = []
         self.loosePanelPresent = False
-
 
         #Initial Setup
         
@@ -355,7 +309,6 @@ class mainProgram(QMainWindow):
                 message.exec()
                 data = self.buildNewMatlist()
                 
-
         self.buildMainWindow()
         self.cableData = data['cableData']
         self.revisionData = data['revisions']
@@ -465,13 +418,8 @@ class mainProgram(QMainWindow):
         self.tableWidget.resizeRowsToContents()
 
     def buildMainWindow(self):
-        self.monitorXSize = int(self.monitor[0].width)
-        self.monitorYSize = int(self.monitor[0].height)
-        self.xShift = int(self.monitorXSize*.1)
-        self.yShift = int(self.monitorYSize*.1)
-        self.xSize = int(self.monitorXSize*.8)
-        self.ySize = int(self.monitorYSize*.8)
-        self.setGeometry(QtCore.QRect(self.xShift,self.yShift,self.xSize,self.ySize))
+        self.monitor = get_monitors()
+        self.setGeometry(QtCore.QRect(int(self.monitor[0].width*.1),int(self.monitor[0].height*.1),int(self.monitor[0].width*.8),int(self.monitor[0].height*.8)))
         filename = os.path.basename(self.matListFileName).split('.')[0]
         self.setWindowTitle(f'{filename} Contract List')
 
@@ -493,9 +441,8 @@ class mainProgram(QMainWindow):
     def buildNewMatlist(self):
         self.matListFileName = 'newFile.json'
         self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
+        self.columnHeaders = ['Item Options']
 
-        #if type(input) == type(dict()):
-        #data = {"Panel":{"item":{"count":'0',"names":[],"description":""}}}
         data = {}
         data['cableData'] = {"Item No.":[],
                                 "Cable Type":[],
@@ -509,9 +456,6 @@ class mainProgram(QMainWindow):
                                 "To\nPort":[],
                                 "To\nPanel Number":[]}
         data['revisions'] = {"date":[],"user":[],"description":[]}
-        # for i in list(data.keys()):
-        #     self.columnHeaders.append(i)
-
         return data
     
     def importData(self, inputFile):
@@ -537,7 +481,7 @@ class mainProgram(QMainWindow):
                 data[row[2]][row[0]]['count'] = data[row[2]][row[0]]['count'] + 1
                 data[row[2]][row[0]]['names'].append(row[1])
 
-
+        self.columnHeaders = ['Item Options']
         for i in list(data.keys()): 
             if i != 'cableData' and i != 'revisions':
                 self.columnHeaders.append(i)
@@ -556,6 +500,7 @@ class mainProgram(QMainWindow):
 
     def buildInitialTable(self, data):
         dimensions = [len(self.uniqueItemNumbers),len(self.columnHeaders)]
+        self.tableWidget = QTableWidget()                   
         self.tableWidget.setColumnCount(dimensions[1])
         self.tableWidget.setRowCount(dimensions[0])
         self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
@@ -838,7 +783,7 @@ class mainProgram(QMainWindow):
         pagesize = (self.pageWidth * inch, self.pageHeight * inch)
         doc = BaseDocTemplate(self.pdfFileName, pagesize=pagesize, leftMargin=.25*inch, rightMargin=.25*inch, topMargin=.25*inch, bottomMargin=.25*inch)
         frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id='normal')
-        self.revisionNumber = Paragraph(f'Rev. {len(self.revisionData)-1}', styleCustomRightJustified)
+        self.revisionNumber = Paragraph(f'Rev. {len(self.revisionData)-1}', styleCustomLeftJustified)
         template1 = PageTemplate(id='test', frames=frame, onPage=self.drawRevisionNumber)        
         elements = []
         elements.append(matlistTable)
@@ -847,7 +792,10 @@ class mainProgram(QMainWindow):
         elements.append(PageBreak())
         elements.append(revisionTable)
         doc.addPageTemplates([template1])
-        doc.build(elements, canvasmaker=NumberedPageCanvas)
+        canvasSizeSelector = {(8.5,11):NumberedPageCanvas8x11,
+                              (11,8.5):NumberedPageCanvas11x8,
+                              (17,11):NumberedPageCanvas17x11}
+        doc.build(elements, canvasmaker=canvasSizeSelector[(self.pageWidth,self.pageHeight)])
 
     def drawRevisionNumber(self, canvas, doc):
         w, h = self.revisionNumber.wrap(doc.width, doc.bottomMargin)
@@ -1059,21 +1007,13 @@ class signalClass(QWidget):
     saveCableData = QtCore.pyqtSignal()
     saveRevisionData = QtCore.pyqtSignal()
 
-class NumberedPageCanvas(Canvas):
-    """
-    http://code.activestate.com/recipes/546511-page-x-of-y-with-reportlab/
-    http://code.activestate.com/recipes/576832/
-    http://www.blog.pythonlibrary.org/2013/08/12/reportlab-how-to-add-page-numbers/
-    """
-
+class NumberedPageCanvas8x11(Canvas):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pages = []
-
     def showPage(self):
         self.pages.append(dict(self.__dict__))
         self._startPage()
-
     def save(self):
         page_count = len(self.pages)
         for page in self.pages:
@@ -1081,11 +1021,48 @@ class NumberedPageCanvas(Canvas):
             self.draw_page_number(page_count)
             super().showPage()
         super().save()
-
     def draw_page_number(self, page_count):
         page = "Page %s of %s" % (self._pageNumber, page_count)
         self.setFont("Helvetica", 8)
-        self.drawRightString(.81 * inch, 0.22 * inch, page)
+        self.drawRightString(8.25 * inch, 0.22 * inch, page)
+
+class NumberedPageCanvas11x8(Canvas):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.pages = []
+    def showPage(self):
+        self.pages.append(dict(self.__dict__))
+        self._startPage()
+    def save(self):
+        page_count = len(self.pages)
+        for page in self.pages:
+            self.__dict__.update(page)
+            self.draw_page_number(page_count)
+            super().showPage()
+        super().save()
+    def draw_page_number(self, page_count):
+        page = "Page %s of %s" % (self._pageNumber, page_count)
+        self.setFont("Helvetica", 8)
+        self.drawRightString(10.75 * inch, 0.22 * inch, page)
+
+class NumberedPageCanvas17x11(Canvas):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.pages = []
+    def showPage(self):
+        self.pages.append(dict(self.__dict__))
+        self._startPage()
+    def save(self):
+        page_count = len(self.pages)
+        for page in self.pages:
+            self.__dict__.update(page)
+            self.draw_page_number(page_count)
+            super().showPage()
+        super().save()
+    def draw_page_number(self, page_count):
+        page = "Page %s of %s" % (self._pageNumber, page_count)
+        self.setFont("Helvetica", 8)
+        self.drawRightString(16.75 * inch, 0.22 * inch, page)
 
 
 
