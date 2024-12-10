@@ -1,20 +1,16 @@
 #NOT RELEASED FOR USE
-import sys
 from screeninfo import get_monitors
+import csv, os, re, json, sys
+
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QAction, QShortcut, QMessageBox, QFileDialog, QRadioButton, QAbstractScrollArea, QSpinBox, QCheckBox, QInputDialog, QLabel, QGridLayout, QComboBox, QApplication, QMainWindow, QDialog, QWidget, QTableWidget, QDockWidget, QTableWidgetItem, QFormLayout, QLineEdit, QPushButton, QSpacerItem
-import json
+from PyQt5.QtWidgets import *
+
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter, landscape, inch, mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, PageBreak, PageTemplate, BaseDocTemplate
+from reportlab.lib.pagesizes import inch
+from reportlab.platypus import Paragraph, Table, PageBreak, PageTemplate, BaseDocTemplate
 from reportlab.platypus.frames import Frame
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfgen.canvas import Canvas
-import re
-import os
-import csv
-
-
 
 
 #To-Do:
@@ -33,6 +29,7 @@ import csv
 def naturalSortKey(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(re.compile('([0-9]+)'), s)]
 
+#Main Windows
 class revisionWindow(QMainWindow):
     def __init__(self, signals, revisionData: dict = {"date":[],"user":[],"description":[]}):
         super(revisionWindow,self).__init__()
@@ -251,17 +248,21 @@ class cableWindow(QMainWindow):
 class mainProgram(QMainWindow):
     def __init__(self, signalClass, masterMaterialList = {'':''}):
         super(mainProgram, self).__init__()
+        #Variable Declarations
         self.masterMatList = masterMaterialList
         self.signals = signalClass
         self.initComplete = False
         self.saved = False
+        self.currentlySelectedCell = [0,0]
+        self.loosePanelPresent = False
         
+        #Signal/Function Connections
         self.signals.refreshCellDimensions.connect(self.refreshCells)
         self.signals.needsSaved.connect(self.needsSaved)
         self.signals.saveCableData.connect(self.saveCableData)
         self.signals.saveRevisionData.connect(self.saveRevisionData)
-        self.itemNoFont = QtGui.QFont()
-        self.itemNoFont.setBold(True)
+
+        #Keyboard Shortcut/Function Connections
         self.refreshCellsShortcut = QShortcut(QtGui.QKeySequence(self.tr("R")),self)
         self.refreshCellsShortcut.activated.connect(self.refreshCells)
         self.refreshDockShortcut = QShortcut(QtGui.QKeySequence(self.tr("D")),self)
@@ -270,26 +271,21 @@ class mainProgram(QMainWindow):
         self.helpShortcut.activated.connect(self.displayHints)
         self.cellNoteShortcut = QShortcut(QtGui.QKeySequence(self.tr('N')),self)
         self.cellNoteShortcut.activated.connect(self.addCellNote)
-        #self.test = QShortcut(QtGui.QKeySequence(self.tr('T')),self)
-        #self.test.activated.connect(self.)
+        '''For Testing Purposes
+        self.test = QShortcut(QtGui.QKeySequence(self.tr('T')),self)
+        self.test.activated.connect(self.)'''
         
         self.quit = QAction("Quit",self)
         self.quit.triggered.connect(self.closeEvent)
 
-        code = self.startupMessage()
-        if code == 0:
-            exit()
-        elif code == 1:
+        startupCode = self.startupMessage()
+        if startupCode == 0:
+            sys.exit()
+        elif startupCode == 1:
             self.newFile = True
-        elif code == 2:
+        elif startupCode == 2:
             self.newFile = False
 
-
-        self.currentlySelectedCell = [0,0]
-        self.uniqueItemNumbers = []
-        self.loosePanelPresent = False
-
-        
         if self.newFile:
             data = self.buildNewMatlist()
         else:
@@ -299,11 +295,9 @@ class mainProgram(QMainWindow):
             try:
                 self.matListFileName = file.selectedFiles()[0]
                 self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
-
                 data = self.importData(self.matListFileName)
             except:
-                message = QMessageBox()
-                message.setText('Error Loading File\nNew File Being Created')
+                message = QMessageBox(text='Error Loading File\nNew File Being Created')
                 message.exec()
                 data = self.buildNewMatlist()
         self.cableData = data['cableData']
@@ -402,6 +396,7 @@ class mainProgram(QMainWindow):
         self.setWindowTitle(f'{filename} Contract List')
 
     def getUniqueItemNumbers(self,data):
+        self.uniqueItemNumbers = []
         for panel in data:
             if panel != 'cableData' and panel != 'revisions':
                 for item in data[panel]:
@@ -452,7 +447,7 @@ class mainProgram(QMainWindow):
         for item in self.masterMatList.keys():
             self.dockItemSelect.addItem(item)
 
-        self.printButton = QPushButton('Save',clicked=self.export)
+        self.printButton = QPushButton('Save',clicked=self.save)
         self.deleteRow = QPushButton(f'Delete Item: ',clicked=self.deleteItem)
         self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
@@ -488,7 +483,6 @@ class mainProgram(QMainWindow):
         self.dock.setWidget(self.dockMenu)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dock) 
 
-
 #Key Shortcut Functions
     def refreshCells(self):
         self.tableWidget.resizeColumnsToContents()
@@ -506,7 +500,6 @@ class mainProgram(QMainWindow):
         noteBox = QInputDialog()
         self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = noteBox.getText(self,'Cell Note',f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.columnHeaders[self.currentlySelectedCell[1]]}",text=self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note)[0]
 
-
 #Signal-Triggered Functions
     def needsSaved(self):
         self.saved = False
@@ -519,7 +512,6 @@ class mainProgram(QMainWindow):
         self.revisionData = self.revisionDataWindow1.revisionData
         self.saved = False
 
-
 #Utility Functions
     def getAllDeviceNames(self):
         deviceNames = []
@@ -529,7 +521,36 @@ class mainProgram(QMainWindow):
                     deviceNames.append(deviceName.text())
         return deviceNames
         
+    def developOutputDictionary(self):
+        self.outputDictionary = {}
+        for header in self.columnHeaders:
+            if header != 'Item Options':
+                self.outputDictionary[header] = {}
+        for panel in self.outputDictionary:
+            self.outputDictionary[panel]['description'] = ''
+            for item in self.uniqueItemNumbers:
+                row = self.uniqueItemNumbers.index(item)
+                column = self.columnHeaders.index(panel)
+                self.outputDictionary[panel][item] = {}
+                if self.tableWidget.cellWidget(row,column).oneLotSelected:
+                    self.outputDictionary[panel][item]['count'] = '1 Lot'
+                else:
+                    self.outputDictionary[panel][item]['count'] = self.tableWidget.cellWidget(row,column).countSelect.value()
+                self.outputDictionary[panel][item]['names'] = [i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames]
+                self.outputDictionary[panel][item]['description'] = ''
+                self.outputDictionary[panel][item]['note'] = self.tableWidget.cellWidget(row, column).note
 
+        self.outputDictionary['cableData'] = self.cableData
+        self.outputDictionary['revisions'] = self.revisionData
+
+    def saveJSONFile(self):
+        self.developOutputDictionary()
+        with open(self.matListFileName,'w') as outfile:
+            json.dump(self.outputDictionary,outfile)
+
+        '''Saves with form:
+        {'|Panel|':{'description':'|panel description|','|item number|':{'count':'|count|','names':'|[names]|','description':'|item description|'}}}'''
+    
 #Right Dock Functions
     def addItem(self):
         if self.dockItemSelect.currentText() not in [self.tableWidget.cellWidget(i,0).text for i in range(self.tableWidget.rowCount())]:
@@ -553,7 +574,7 @@ class mainProgram(QMainWindow):
     def updateAddRowButton(self):
         self.addItemButton.setText('Add Item: '+self.dockItemSelect.currentText())
 
-    def export(self):
+    def save(self):
         if self.newFile:
             self.matListFileName = QFileDialog.getSaveFileName(filter="*.json")[0]
 
@@ -639,7 +660,6 @@ class mainProgram(QMainWindow):
         self.revisionDataWindow1 = revisionWindow(self.signals, self.revisionData)
         self.revisionDataWindow1.show()
         
-
 #Parent Function Redefinitions
     def closeEvent(self,event):
         if self.saved == False:
@@ -651,6 +671,7 @@ class mainProgram(QMainWindow):
         else:
             event.accept()
   
+#Table Events
     def showItemDescription(self):
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
         description = QMessageBox()
@@ -658,52 +679,13 @@ class mainProgram(QMainWindow):
         description.setText(self.masterMatList[self.uniqueItemNumbers[self.tableWidget.currentRow()]])
         description.exec()
 
-    def updateDeleteRowButton(self):
-        if self.tableWidget.rowCount()>0:
-            self.deleteRow.setText('Delete Item: '+self.tableWidget.cellWidget(self.currentlySelectedCell[0],0).text)
-
-    def updateDeletePanelButton(self):
-        self.deletePanelButton.setText('Delete Panel: '+self.columnHeaders[self.currentlySelectedCell[1]])
-
     def tableItemSelectionChanged(self):
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
-        self.updateDeleteRowButton()
-        self.updateDeletePanelButton()
-        #self.buildRightDock()
-            
-    def developOutputDictionary(self):
-        self.outputDictionary = {}
-        for header in self.columnHeaders:
-            if header != 'Item Options':
-                self.outputDictionary[header] = {}
-        for panel in self.outputDictionary:
-            self.outputDictionary[panel]['description'] = ''
-            for item in self.uniqueItemNumbers:
-                row = self.uniqueItemNumbers.index(item)
-                column = self.columnHeaders.index(panel)
-                self.outputDictionary[panel][item] = {}
-                if self.tableWidget.cellWidget(row,column).oneLotSelected:
-                    self.outputDictionary[panel][item]['count'] = '1 Lot'
-                else:
-                    self.outputDictionary[panel][item]['count'] = self.tableWidget.cellWidget(row,column).countSelect.value()
-                self.outputDictionary[panel][item]['names'] = [i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames]
-                self.outputDictionary[panel][item]['description'] = ''
-                self.outputDictionary[panel][item]['note'] = self.tableWidget.cellWidget(row, column).note
-                #if item[0] == '2' and len(item) >= 3: #Only for cables
-                #    self.outputDictionary[panel][item]['cables'] = self.tableWidget.cellWidget(row,column).cableData
-                #else:
-                #    self.outputDictionary[panel][item]['cables'] = 'N/A'
-        self.outputDictionary['cableData'] = self.cableData
-        self.outputDictionary['revisions'] = self.revisionData
-                    
-    def saveJSONFile(self):
-        self.developOutputDictionary()
-        with open(self.matListFileName,'w') as outfile:
-            json.dump(self.outputDictionary,outfile)
+        if self.tableWidget.rowCount()>0:
+            self.deleteRow.setText('Delete Item: '+self.tableWidget.cellWidget(self.currentlySelectedCell[0],0).text)
+        self.deletePanelButton.setText('Delete Panel: '+self.columnHeaders[self.currentlySelectedCell[1]])
 
-        '''Saves with form:
-        {'|Panel|':{'description':'|panel description|','|item number|':{'count':'|count|','names':'|[names]|','description':'|item description|'}}}'''
-    
+#PDF Functions
     def makeMatlistTable(self):
         styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
         styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
@@ -808,7 +790,7 @@ class mainProgram(QMainWindow):
         w, h = self.revisionNumber.wrap(doc.width, doc.bottomMargin)
         self.revisionNumber.drawOn(canvas, doc.leftMargin, h)
 
-
+#Custom Widgets for Main Table
 class advancedCustomTableWidgetItem(QWidget):
     def __init__(self,signalClass, count=0,deviceNames=[], coordinates=(), note = ''):
         super(advancedCustomTableWidgetItem,self).__init__()
@@ -993,6 +975,7 @@ class firstColumnWidget(QWidget):
         if row == self.coordinates[0]:
             self.deviceNames.setChecked(True)
         
+#Signals
 class signalClass(QWidget):
     refreshCellDimensions = QtCore.pyqtSignal()  
     enableDeviceNames = QtCore.pyqtSignal(int)
@@ -1005,6 +988,7 @@ class signalClass(QWidget):
     saveCableData = QtCore.pyqtSignal()
     saveRevisionData = QtCore.pyqtSignal()
 
+#PDF Classes
 class NumberedPageCanvas8x11(Canvas):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
