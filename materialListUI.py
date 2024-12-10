@@ -246,11 +246,11 @@ class cableWindow(QMainWindow):
         self.signals.saveCableData.emit()
 
 class mainProgram(QMainWindow):
-    def __init__(self, signalClass, masterMaterialList = {'':''}):
+    def __init__(self, masterMaterialList = {'':''}):
         super(mainProgram, self).__init__()
         #Variable Declarations
         self.masterMatList = masterMaterialList
-        self.signals = signalClass
+        self.signals = signalClass()
         self.initComplete = False
         self.saved = False
         self.currentlySelectedCell = [0,0]
@@ -273,7 +273,7 @@ class mainProgram(QMainWindow):
         self.cellNoteShortcut.activated.connect(self.addCellNote)
         '''For Testing Purposes
         self.test = QShortcut(QtGui.QKeySequence(self.tr('T')),self)
-        self.test.activated.connect(self.)'''
+        self.test.activated.connect(self.selectMasterMatlistFile)'''
         
         self.quit = QAction("Quit",self)
         self.quit.triggered.connect(self.closeEvent)
@@ -458,6 +458,7 @@ class mainProgram(QMainWindow):
         self.addLooseButton = QPushButton('Add "Loose and Not Mounted"',clicked=self.addLoose)
         self.cableDataWindowButton = QPushButton('Show Cable Window', clicked=self.showCableData)
         self.revisionDataWindowButton = QPushButton("Show Revision Data",clicked=self.showRevisionData)
+        self.selectMasterMatlistButton = QPushButton("Select Master Material List",clicked=self.selectMasterMatlistFile)
 
         self.dockLayout = QFormLayout()
         self.dockLayout.addRow(self.dockItemSelect)
@@ -472,6 +473,7 @@ class mainProgram(QMainWindow):
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.cableDataWindowButton)
         self.dockLayout.addRow(self.revisionDataWindowButton)
+        self.dockLayout.addRow(self.selectMasterMatlistButton)
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.printButton)
         self.dockLayout.addItem(QSpacerItem(50,300))
@@ -660,6 +662,18 @@ class mainProgram(QMainWindow):
         self.revisionDataWindow1 = revisionWindow(self.signals, self.revisionData)
         self.revisionDataWindow1.show()
         
+    def selectMasterMatlistFile(self):
+        try:
+            fileDialog = QFileDialog()
+            fileDialog.setNameFilters(["Text files (*.json)"])
+            fileDialog.exec()
+            with open(fileDialog.selectedFiles()[0]) as file:
+                self.masterMatList = json.load(file)
+            for item in self.masterMatList.keys():
+                self.dockItemSelect.addItem(item)
+        except:
+            pass
+
 #Parent Function Redefinitions
     def closeEvent(self,event):
         if self.saved == False:
@@ -1052,10 +1066,7 @@ class NumberedPageCanvas17x11(Canvas):
 
 if  __name__ == "__main__":
     app = QApplication(sys.argv)
-    with open('json/MasterList.json') as file:
-        masterList = json.load(file)
-    signals = signalClass()
-    application = mainProgram(signals,masterMaterialList=masterList)
+    application = mainProgram()
     application.show()
     sys.exit(app.exec())
 
