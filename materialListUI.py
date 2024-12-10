@@ -253,6 +253,9 @@ class mainProgram(QMainWindow):
         super(mainProgram, self).__init__()
         self.masterMatList = masterMaterialList
         self.signals = signalClass
+        self.initComplete = False
+        self.saved = False
+        
         self.signals.refreshCellDimensions.connect(self.refreshCells)
         self.signals.needsSaved.connect(self.needsSaved)
         self.signals.saveCableData.connect(self.saveCableData)
@@ -269,7 +272,6 @@ class mainProgram(QMainWindow):
         self.cellNoteShortcut.activated.connect(self.addCellNote)
         #self.test = QShortcut(QtGui.QKeySequence(self.tr('T')),self)
         #self.test.activated.connect(self.)
-        self.saved = False
         
         self.quit = QAction("Quit",self)
         self.quit.triggered.connect(self.closeEvent)
@@ -283,14 +285,10 @@ class mainProgram(QMainWindow):
             self.newFile = False
 
 
-        self.dock = QDockWidget('Menu')
-        self.dockMenu = QWidget()
-        self.dockLayout = QFormLayout()
         self.currentlySelectedCell = [0,0]
         self.uniqueItemNumbers = []
         self.loosePanelPresent = False
 
-        #Initial Setup
         
         if self.newFile:
             data = self.buildNewMatlist()
@@ -308,72 +306,15 @@ class mainProgram(QMainWindow):
                 message.setText('Error Loading File\nNew File Being Created')
                 message.exec()
                 data = self.buildNewMatlist()
-                
-        self.buildMainWindow()
         self.cableData = data['cableData']
         self.revisionData = data['revisions']
+
+        self.buildMainWindow()
         self.getUniqueItemNumbers(data)
         self.buildInitialTable(data)
         self.buildRightDock()
         self.saved = True
-
-    def addCellNote(self):
-        self.saved = False
-        self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
-        noteBox = QInputDialog()
-        self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = noteBox.getText(self,'Cell Note',f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.columnHeaders[self.currentlySelectedCell[1]]}",text=self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note)[0]
-
-    def getAllDeviceNames(self):
-        deviceNames = []
-        for rowIndex, row in enumerate(self.uniqueItemNumbers):
-            for columnIndex, column in enumerate(self.columnHeaders[1:]):
-                for deviceName in self.tableWidget.cellWidget(rowIndex,columnIndex+1).deviceNames:
-                    deviceNames.append(deviceName.text())
-        return deviceNames
-    
-    def getNumberOfCables(self):
-        '''Deprecated and Unused'''
-        total = 0
-        for rowIndex, row in enumerate(self.uniqueItemNumbers):
-            if row[0] == '2' and len(row) >= 3:
-                for columnIndex, column in enumerate(self.columnHeaders[1:]):
-                    total += self.tableWidget.cellWidget(rowIndex,columnIndex+1).countSelect.value()
-        minimumCableCount = 0 #Get this from loaded json file
-        return(max(total,minimumCableCount))
-    
-    def showCableData(self):
-        availablePanels = list(self.columnHeaders) #list() forces "copy by value" instead of "copy by reference"
-        if 'Loose and Not Mounted' in availablePanels:
-            availablePanels.remove('Loose and Not Mounted')
-        availablePanels.remove('Item Options')
-        self.cableDataWindow1 = cableWindow(self.signals, self.cableData,availableItemNumbers=self.uniqueItemNumbers, availableDeviceNumbers=self.getAllDeviceNames(), availablePanelNumbers=availablePanels)
-        self.cableDataWindow1.show()
-        #self.saved = False
-
-    def showRevisionData(self):
-        self.revisionDataWindow1 = revisionWindow(self.signals, self.revisionData)
-        self.revisionDataWindow1.show()
-
-    def saveCableData(self):
-        self.cableData = self.cableDataWindow1.cableData
-        self.saved = False
-        #self.export()
-
-    def saveRevisionData(self):
-        self.revisionData = self.revisionDataWindow1.revisionData
-        self.saved = False
-        
-    def renamePanel(self):
-        newPanelName = QInputDialog()
-        newPanelName.setWindowTitle("Rename Panel:")
-        newPanelName.setLabelText("Rename Panel:")
-        newPanelName.exec()
-        name = newPanelName.textValue()
-        self.columnHeaders[self.currentlySelectedCell[1]] = name
-        self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
-        
-    def needsSaved(self):
-        self.saved = False
+        self.initComplete = True
 
     def startupMessage(self):
         '''Code = 0 -> Exit Program\n
@@ -403,41 +344,6 @@ class mainProgram(QMainWindow):
             code = 2
         return code
 
-    def closeEvent(self,event):
-        if self.saved == False:
-            close = QMessageBox.question(self,'QUIT','Quit Without Saving?',QMessageBox.Yes|QMessageBox.No,QMessageBox.No)
-            if close == QMessageBox.Yes:
-                event.accept()
-            else:
-                event.ignore()
-        else:
-            event.accept()
-  
-    def refreshCells(self):
-        self.tableWidget.resizeColumnsToContents()
-        self.tableWidget.resizeRowsToContents()
-
-    def buildMainWindow(self):
-        self.monitor = get_monitors()
-        self.setGeometry(QtCore.QRect(int(self.monitor[0].width*.1),int(self.monitor[0].height*.1),int(self.monitor[0].width*.8),int(self.monitor[0].height*.8)))
-        filename = os.path.basename(self.matListFileName).split('.')[0]
-        self.setWindowTitle(f'{filename} Contract List')
-
-    def addPanel(self):        
-        self.columnHeaders.append(self.newPanelName.text())
-        self.tableWidget.insertColumn(self.tableWidget.columnCount())
-        for row in range(self.tableWidget.rowCount()):
-            cell = advancedCustomTableWidgetItem(self.signals,coordinates=(row,self.tableWidget.columnCount()-1))
-            cell.oneLotSelected = self.tableWidget.cellWidget(row,0).oneLot.isChecked()
-            cell.oneLot()
-            cell.showDevices = self.tableWidget.cellWidget(row,0).deviceNames.isChecked()
-            #print(cell.showDevices)
-            self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
-        self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
-        self.newPanelName.setText('')
-        self.refreshCells()
-        self.saved = False
-
     def buildNewMatlist(self):
         self.matListFileName = 'newFile.json'
         self.pdfFileName = self.matListFileName.split('.')[0]+'.pdf'
@@ -457,7 +363,7 @@ class mainProgram(QMainWindow):
                                 "To\nPanel Number":[]}
         data['revisions'] = {"date":[],"user":[],"description":[]}
         return data
-    
+
     def importData(self, inputFile):
         data = {}
         if inputFile.split('.')[1] == 'json':
@@ -488,6 +394,12 @@ class mainProgram(QMainWindow):
                 if i == 'Loose and Not Mounted':
                     self.loosePanelPresent = True
         return data   
+
+    def buildMainWindow(self):
+        self.monitor = get_monitors()
+        self.setGeometry(QtCore.QRect(int(self.monitor[0].width*.1),int(self.monitor[0].height*.1),int(self.monitor[0].width*.8),int(self.monitor[0].height*.8)))
+        filename = os.path.basename(self.matListFileName).split('.')[0]
+        self.setWindowTitle(f'{filename} Contract List')
 
     def getUniqueItemNumbers(self,data):
         for panel in data:
@@ -531,33 +443,16 @@ class mainProgram(QMainWindow):
 
         self.setCentralWidget(self.tableWidget)
 
-    def showItemDescription(self):
-        self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
-        description = QMessageBox()
-        description.setWindowTitle(self.uniqueItemNumbers[self.tableWidget.currentRow()])
-        description.setText(self.masterMatList[self.uniqueItemNumbers[self.tableWidget.currentRow()]])
-        description.exec()
-
-    def updateAddRowButton(self):
-        self.addItemButton.setText('Add Item: '+self.dockItemSelect.currentText())
-    
-    def updateDeleteRowButton(self):
-        if self.tableWidget.rowCount()>0:
-            self.deleteRow.setText('Delete Item: '+self.tableWidget.cellWidget(self.currentlySelectedCell[0],0).text)
-
-    def updateDeletePanelButton(self):
-        self.deletePanelButton.setText('Delete Panel: '+self.columnHeaders[self.currentlySelectedCell[1]])
-
     def buildRightDock(self):
-        self.removeDockWidget(self.dock)
+        if self.initComplete == True:
+            self.removeDockWidget(self.dock)
+        self.addItemButton = QPushButton('Add Item: 0',clicked=self.addItem)
         self.dockItemSelect = QComboBox()
         self.dockItemSelect.currentTextChanged.connect(self.updateAddRowButton)
         for item in self.masterMatList.keys():
             self.dockItemSelect.addItem(item)
 
-        self.addItemButton = QPushButton('Add Item: 0',clicked=self.addItem)
         self.printButton = QPushButton('Save',clicked=self.export)
-        #self.revisionButton = QPushButton('Add Revision Information',clicked=self.addRevisionInformation)
         self.deleteRow = QPushButton(f'Delete Item: ',clicked=self.deleteItem)
         self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
@@ -592,23 +487,12 @@ class mainProgram(QMainWindow):
         self.dock = QDockWidget('Menu')
         self.dock.setWidget(self.dockMenu)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dock) 
-    
-    def addLoose(self):
-        if not self.loosePanelPresent:
-            self.columnHeaders.append('Loose and Not Mounted')
-            self.tableWidget.insertColumn(self.tableWidget.columnCount())
-            for row in range(self.tableWidget.rowCount()):
-                cell = advancedCustomTableWidgetItem(self.signals,coordinates=(row,self.tableWidget.columnCount()-1))
-                cell.oneLotSelected = self.tableWidget.cellWidget(row,0).oneLot.isChecked()
-                cell.oneLot()
-                cell.showDevices = self.tableWidget.cellWidget(row,0).deviceNames.isChecked()
-                #print(cell.showDevices)
-                self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
-            self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
-            self.newPanelName.setText('')
-            self.refreshCells()
-            self.saved = False
-            self.loosePanelPresent = True
+
+
+#Key Shortcut Functions
+    def refreshCells(self):
+        self.tableWidget.resizeColumnsToContents()
+        self.tableWidget.resizeRowsToContents()
 
     def displayHints(self):
         hints = QMessageBox()
@@ -616,19 +500,37 @@ class mainProgram(QMainWindow):
         hints.setText('Shortcuts:\n\'R\': Resize Cells to Fit Contents\n\'D\': Show Menu\n\'H\': Display Hints\n\'N\': Add Note to Currently Selected Cell\nDouble-Click Cell: Show Item Description\nType: "<br/>" when entering data to force a new line')
         hints.exec()
 
-    def deletePanel(self):
-        if self.columnHeaders[self.currentlySelectedCell[1]] == 'Loose and Not Mounted':
-            self.loosePanelPresent = False
-        self.columnHeaders.remove(self.columnHeaders[self.currentlySelectedCell[1]])
-        self.tableWidget.removeColumn(self.currentlySelectedCell[1])
+    def addCellNote(self):
+        self.saved = False
+        self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
+        noteBox = QInputDialog()
+        self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = noteBox.getText(self,'Cell Note',f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.columnHeaders[self.currentlySelectedCell[1]]}",text=self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note)[0]
+
+
+#Signal-Triggered Functions
+    def needsSaved(self):
         self.saved = False
 
-    def tableItemSelectionChanged(self):
-        self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
-        self.updateDeleteRowButton()
-        self.updateDeletePanelButton()
-        #self.buildRightDock()
+    def saveCableData(self):
+        self.cableData = self.cableDataWindow1.cableData
+        self.saved = False
+
+    def saveRevisionData(self):
+        self.revisionData = self.revisionDataWindow1.revisionData
+        self.saved = False
+
+
+#Utility Functions
+    def getAllDeviceNames(self):
+        deviceNames = []
+        for rowIndex, row in enumerate(self.uniqueItemNumbers):
+            for columnIndex, column in enumerate(self.columnHeaders[1:]):
+                for deviceName in self.tableWidget.cellWidget(rowIndex,columnIndex+1).deviceNames:
+                    deviceNames.append(deviceName.text())
+        return deviceNames
         
+
+#Right Dock Functions
     def addItem(self):
         if self.dockItemSelect.currentText() not in [self.tableWidget.cellWidget(i,0).text for i in range(self.tableWidget.rowCount())]:
             self.tableWidget.insertRow(self.tableWidget.rowCount())
@@ -648,6 +550,9 @@ class mainProgram(QMainWindow):
         self.refreshCells()
         self.saved = False
 
+    def updateAddRowButton(self):
+        self.addItemButton.setText('Add Item: '+self.dockItemSelect.currentText())
+
     def export(self):
         if self.newFile:
             self.matListFileName = QFileDialog.getSaveFileName(filter="*.json")[0]
@@ -663,7 +568,109 @@ class mainProgram(QMainWindow):
         directory = os.path.split(self.matListFileName)[0]
         message.setText(f'PDF and JSON saved in {directory}')
         message.exec()
+
+    def deleteItem(self):
+        if len(self.uniqueItemNumbers) > 0:
+            self.uniqueItemNumbers.remove(self.tableWidget.cellWidget(self.currentlySelectedCell[0],0).text)
+            self.tableWidget.removeRow(self.currentlySelectedCell[0])
+        if len(self.uniqueItemNumbers) > 0:
+            self.deleteRow.setText(f'Delete Item: {self.tableWidget.cellWidget(self.currentlySelectedCell[0],0).text}')
+        else:
+            self.deleteRow.setText(f'')
+        self.saved = False
+
+    def addPanel(self):        
+        self.columnHeaders.append(self.newPanelName.text())
+        self.tableWidget.insertColumn(self.tableWidget.columnCount())
+        for row in range(self.tableWidget.rowCount()):
+            cell = advancedCustomTableWidgetItem(self.signals,coordinates=(row,self.tableWidget.columnCount()-1))
+            cell.oneLotSelected = self.tableWidget.cellWidget(row,0).oneLot.isChecked()
+            cell.oneLot()
+            cell.showDevices = self.tableWidget.cellWidget(row,0).deviceNames.isChecked()
+            #print(cell.showDevices)
+            self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
+        self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
+        self.newPanelName.setText('')
+        self.refreshCells()
+        self.saved = False
+
+    def deletePanel(self):
+        if self.columnHeaders[self.currentlySelectedCell[1]] == 'Loose and Not Mounted':
+            self.loosePanelPresent = False
+        self.columnHeaders.remove(self.columnHeaders[self.currentlySelectedCell[1]])
+        self.tableWidget.removeColumn(self.currentlySelectedCell[1])
+        self.saved = False
+
+    def renamePanel(self):
+        newPanelName = QInputDialog()
+        newPanelName.setWindowTitle("Rename Panel:")
+        newPanelName.setLabelText("Rename Panel:")
+        newPanelName.exec()
+        name = newPanelName.textValue()
+        self.columnHeaders[self.currentlySelectedCell[1]] = name
+        self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
+
+    def addLoose(self):
+        if not self.loosePanelPresent:
+            self.columnHeaders.append('Loose and Not Mounted')
+            self.tableWidget.insertColumn(self.tableWidget.columnCount())
+            for row in range(self.tableWidget.rowCount()):
+                cell = advancedCustomTableWidgetItem(self.signals,coordinates=(row,self.tableWidget.columnCount()-1))
+                cell.oneLotSelected = self.tableWidget.cellWidget(row,0).oneLot.isChecked()
+                cell.oneLot()
+                cell.showDevices = self.tableWidget.cellWidget(row,0).deviceNames.isChecked()
+                #print(cell.showDevices)
+                self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
+            self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
+            self.newPanelName.setText('')
+            self.refreshCells()
+            self.saved = False
+            self.loosePanelPresent = True
+
+    def showCableData(self):
+        availablePanels = list(self.columnHeaders) #list() forces "copy by value" instead of "copy by reference"
+        if 'Loose and Not Mounted' in availablePanels:
+            availablePanels.remove('Loose and Not Mounted')
+        availablePanels.remove('Item Options')
+        self.cableDataWindow1 = cableWindow(self.signals, self.cableData,availableItemNumbers=self.uniqueItemNumbers, availableDeviceNumbers=self.getAllDeviceNames(), availablePanelNumbers=availablePanels)
+        self.cableDataWindow1.show()
+
+    def showRevisionData(self):
+        self.revisionDataWindow1 = revisionWindow(self.signals, self.revisionData)
+        self.revisionDataWindow1.show()
         
+
+#Parent Function Redefinitions
+    def closeEvent(self,event):
+        if self.saved == False:
+            close = QMessageBox.question(self,'QUIT','Quit Without Saving?',QMessageBox.Yes|QMessageBox.No,QMessageBox.No)
+            if close == QMessageBox.Yes:
+                event.accept()
+            else:
+                event.ignore()
+        else:
+            event.accept()
+  
+    def showItemDescription(self):
+        self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
+        description = QMessageBox()
+        description.setWindowTitle(self.uniqueItemNumbers[self.tableWidget.currentRow()])
+        description.setText(self.masterMatList[self.uniqueItemNumbers[self.tableWidget.currentRow()]])
+        description.exec()
+
+    def updateDeleteRowButton(self):
+        if self.tableWidget.rowCount()>0:
+            self.deleteRow.setText('Delete Item: '+self.tableWidget.cellWidget(self.currentlySelectedCell[0],0).text)
+
+    def updateDeletePanelButton(self):
+        self.deletePanelButton.setText('Delete Panel: '+self.columnHeaders[self.currentlySelectedCell[1]])
+
+    def tableItemSelectionChanged(self):
+        self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
+        self.updateDeleteRowButton()
+        self.updateDeletePanelButton()
+        #self.buildRightDock()
+            
     def developOutputDictionary(self):
         self.outputDictionary = {}
         for header in self.columnHeaders:
@@ -801,15 +808,6 @@ class mainProgram(QMainWindow):
         w, h = self.revisionNumber.wrap(doc.width, doc.bottomMargin)
         self.revisionNumber.drawOn(canvas, doc.leftMargin, h)
 
-    def deleteItem(self):
-        if len(self.uniqueItemNumbers) > 0:
-            self.uniqueItemNumbers.remove(self.tableWidget.cellWidget(self.currentlySelectedCell[0],0).text)
-            self.tableWidget.removeRow(self.currentlySelectedCell[0])
-        if len(self.uniqueItemNumbers) > 0:
-            self.deleteRow.setText(f'Delete Item: {self.tableWidget.cellWidget(self.currentlySelectedCell[0],0).text}')
-        else:
-            self.deleteRow.setText(f'')
-        self.saved = False
 
 class advancedCustomTableWidgetItem(QWidget):
     def __init__(self,signalClass, count=0,deviceNames=[], coordinates=(), note = ''):
