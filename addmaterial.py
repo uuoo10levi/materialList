@@ -78,7 +78,7 @@ class AddMaterial(QMainWindow):
     def __init__(self):
         super(AddMaterial, self).__init__()
         
-        self.importJson()
+        # self.importJson()
 
         self.addMaterialDialog = QDialog()
         self.addMaterialDialog.setMinimumSize(100,100)
@@ -243,7 +243,7 @@ class AddMaterial(QMainWindow):
         
         self.buildMainWindow()
         
-        print(self.allMaterialDict)
+        # print(self.allMaterialDict)
         
     def importJson(self):
         with open('json/material.json', 'r') as file:

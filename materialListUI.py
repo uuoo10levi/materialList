@@ -6,15 +6,6 @@ from PyQt5.QtWidgets import QAbstractScrollArea, QSpinBox, QCheckBox, QInputDial
 import json
 
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter, landscape, inch
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Table
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import styles
-from reportlab.pdfgen.canvas import Canvas
-
-
-
 class mainProgram(QMainWindow):
     def __init__(self, matListFileName = 'projectMatlist.json', masterMaterialList = {'':''}):
         super(mainProgram, self).__init__()

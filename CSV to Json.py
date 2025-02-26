@@ -1,21 +1,38 @@
 import json
 import csv
 
-file = open('material.csv', 'r')
+with open("D:\Documents\Material.txt", mode='r') as file:
+    csv_reader = csv.DictReader(file, delimiter='\t')
+    
+    data_list = []
+    
+    for row in csv_reader:
+        data_list.append(row)
 
-adddiosdkjfnaoivjasd = file.readline().split(';')
-itemKeys = file.readline().split(';')
-firstItem = file.readline().split(';')
 
-with open('./json/Basic Material.json', 'r') as file:
-    basicItemDict = json.load(file)
+       
+for n in data_list:
+    print(len(n))
+    # if len(n) != 118:
+    #     res = []
+    #     res.append({k: v for k, v in n.items() if v})
+    #     print(f"{n['ID']} - {len(n)} ({res})")
 
-itemDict = {}
+# adddiosdkjfnaoivjasd = file.readline().split(';')
+# itemKeys = file.readline().split(';')
+# firstItem = file.readline().split(';')
 
-print(len(itemKeys))
-print(len(firstItem))
+# with open('./json/Basic Material.json', 'r') as file:
+#     basicItemDict = json.load(file)
 
-print(firstItem)
+# itemDict = {}
+
+
+
+# print(len(itemKeys))
+# print(len(firstItem))
+
+# print(firstItem)
 # for n,key in enumerate(itemKeys):
 #     if firstItem[n] != '':
 #         itemDict[key] = firstItem[n]
